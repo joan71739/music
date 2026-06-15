@@ -380,7 +380,7 @@ async function init() {
   const token = localStorage.getItem('spotify_token');
   const expires = localStorage.getItem('spotify_expires');
 
-  if (token && expires && Date.now() < expires) {
+  if (token && expires && Date.now() < parseInt(expires)) {
     accessToken = token;
     showPlayer();
     return;
