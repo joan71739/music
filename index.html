@@ -285,19 +285,37 @@ async function ensureToken() {
 }
 
 async function playTrack(uri) {
+  setStatus('⏳', '連線中...');
   await ensureToken();
 
-  const devResponse = await fetch('https://api.spotify.com/v1/me/player/devices', {
-    headers: { Authorization: 'Bearer ' + accessToken }
-  });
-  const devData = await devResponse.json();
-  const device = devData.devices && devData.devices[0];
-  if (!device) {
-    setStatus('⚠️', '請先開啟 Spotify app');
+  if (!accessToken) {
+    setStatus('⚠️', 'Token 失效，請重新登入');
+    showLogin();
     return;
   }
 
-  await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device.id}`, {
+  setStatus('⏳', '尋找裝置...');
+  const devResponse = await fetch('https://api.spotify.com/v1/me/player/devices', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+
+  if (devResponse.status === 401) {
+    setStatus('⚠️', '登入過期，請重新登入');
+    showLogin();
+    return;
+  }
+
+  const devData = await devResponse.json();
+  const devices = devData.devices || [];
+
+  if (devices.length === 0) {
+    setStatus('⚠️', '找不到裝置！請先開 Spotify app 播放任一首歌');
+    return;
+  }
+
+  setStatus('⏳', '裝置：' + devices[0].name);
+
+  const playResponse = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + devices[0].id, {
     method: 'PUT',
     headers: {
       Authorization: 'Bearer ' + accessToken,
@@ -306,12 +324,20 @@ async function playTrack(uri) {
     body: JSON.stringify({ uris: [uri] }),
   });
 
-  setStatus('🎵', '播放中...');
-  document.getElementById('playing-indicator').classList.add('show');
-  document.getElementById('reveal-btn').style.display = 'inline-block';
-  document.getElementById('nfc-hint').style.display = 'none';
+  if (playResponse.status === 403) {
+    setStatus('⚠️', '需要 Spotify Premium 才能控制播放');
+    return;
+  }
 
-  setTimeout(() => getCurrentTrack(), 1000);
+  if (playResponse.status === 204 || playResponse.status === 200) {
+    setStatus('🎵', '播放中...');
+    document.getElementById('playing-indicator').classList.add('show');
+    document.getElementById('reveal-btn').style.display = 'inline-block';
+    document.getElementById('nfc-hint').style.display = 'none';
+    setTimeout(() => getCurrentTrack(), 1000);
+  } else {
+    setStatus('⚠️', '失敗 狀態碼:' + playResponse.status);
+  }
 }
 
 async function getCurrentTrack() {
