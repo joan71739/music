@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金曲擴充播放器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  #main {
+    text-align: center;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  #status-icon {
+    font-size: 80px;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s;
+  }
+
+  #status-text {
+    font-size: 18px;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+
+  #song-name {
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+    min-height: 40px;
+    margin-bottom: 0.3rem;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  #artist-name {
+    font-size: 16px;
+    color: #aaa;
+    min-height: 24px;
+    margin-bottom: 2rem;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  #song-name.show, #artist-name.show {
+    opacity: 1;
+  }
+
+  #reveal-btn {
+    background: none;
+    border: 1px solid #333;
+    color: #666;
+    padding: 0.6rem 1.5rem;
+    border-radius: 50px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 2.5rem;
+    transition: all 0.2s;
+  }
+
+  #reveal-btn:hover {
+    border-color: #555;
+    color: #aaa;
+  }
+
+  #login-section {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  #login-btn {
+    background: #1DB954;
+    color: #000;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  #login-btn:active { transform: scale(0.97); }
+
+  #nfc-hint {
+    font-size: 13px;
+    color: #444;
+    margin-top: 3rem;
+  }
+
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #playing-indicator {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 1.5rem;
+  }
+
+  #playing-indicator.show { display: flex; }
+
+  .bar {
+    width: 4px;
+    background: #1DB954;
+    border-radius: 2px;
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+
+  .bar:nth-child(1) { height: 12px; animation-delay: 0s; }
+  .bar:nth-child(2) { height: 20px; animation-delay: 0.2s; }
+  .bar:nth-child(3) { height: 16px; animation-delay: 0.4s; }
+  .bar:nth-child(4) { height: 24px; animation-delay: 0.1s; }
+  .bar:nth-child(5) { height: 14px; animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1); }
+  }
+</style>
+</head>
+<body>
+
+<div id="main">
+
+  <!-- 登入畫面 -->
+  <div id="login-section" style="display:flex">
+    <div style="font-size:60px; margin-bottom:1rem">🎵</div>
+    <div style="font-size:22px; font-weight:600; margin-bottom:0.5rem">金曲擴充播放器</div>
+    <div style="font-size:14px; color:#666; margin-bottom:1.5rem">請先登入 Spotify（需要 Premium）</div>
+    <button id="login-btn" onclick="login()">連結 Spotify</button>
+    <div style="font-size:12px; color:#444; margin-top:1rem">登入一次後，之後不用再登入</div>
+  </div>
+
+  <!-- 播放畫面 -->
+  <div id="player-section" style="display:none">
+    <div id="status-icon" class="pulse">📡</div>
+    <div id="status-text">靠近 NFC 卡開始播放</div>
+    <div id="playing-indicator">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+    <div id="song-name"></div>
+    <div id="artist-name"></div>
+    <button id="reveal-btn" onclick="revealSong()" style="display:none">揭曉答案 👀</button>
+    <div id="nfc-hint">將歌曲卡靠近手機背面</div>
+  </div>
+
+</div>
+
+<script>
+const CLIENT_ID = '你的_CLIENT_ID_填這裡';
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+
+let accessToken = null;
+let currentTrackName = '';
+let currentArtistName = '';
+
+function login() {
+  const state = generateRandomString(16);
+  const codeVerifier = generateRandomString(64);
+  sessionStorage.setItem('code_verifier', codeVerifier);
+  sessionStorage.setItem('oauth_state', state);
+
+  generateCodeChallenge(codeVerifier).then(codeChallenge => {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      redirect_uri: REDIRECT_URI,
+      state: state,
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
+    });
+    window.location = 'https://accounts.spotify.com/authorize?' + params.toString();
+  });
+}
+
+function generateRandomString(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+  return result;
+}
+
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const storedState = sessionStorage.getItem('oauth_state');
+  const codeVerifier = sessionStorage.getItem('code_verifier');
+
+  if (!code || state !== storedState) return false;
+
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: REDIRECT_URI,
+      client_id: CLIENT_ID,
+      code_verifier: codeVerifier,
+    }),
+  });
+
+  const data = await response.json();
+  if (data.access_token) {
+    accessToken = data.access_token;
+    localStorage.setItem('spotify_token', data.access_token);
+    localStorage.setItem('spotify_refresh', data.refresh_token);
+    localStorage.setItem('spotify_expires', Date.now() + data.expires_in * 1000);
+    return true;
+  }
+  return false;
+}
+
+async function refreshToken() {
+  const refresh = localStorage.getItem('spotify_refresh');
+  if (!refresh) return false;
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refresh,
+      client_id: CLIENT_ID,
+    }),
+  });
+
+  const data = await response.json();
+  if (data.access_token) {
+    accessToken = data.access_token;
+    localStorage.setItem('spotify_token', data.access_token);
+    localStorage.setItem('spotify_expires', Date.now() + data.expires_in * 1000);
+    return true;
+  }
+  return false;
+}
+
+async function ensureToken() {
+  const expires = localStorage.getItem('spotify_expires');
+  if (expires && Date.now() > expires - 60000) {
+    await refreshToken();
+  }
+}
+
+async function playTrack(uri) {
+  await ensureToken();
+
+  const devResponse = await fetch('https://api.spotify.com/v1/me/player/devices', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  const devData = await devResponse.json();
+  const device = devData.devices && devData.devices[0];
+  if (!device) {
+    setStatus('⚠️', '請先開啟 Spotify app');
+    return;
+  }
+
+  await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device.id}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ uris: [uri] }),
+  });
+
+  setStatus('🎵', '播放中...');
+  document.getElementById('playing-indicator').classList.add('show');
+  document.getElementById('reveal-btn').style.display = 'inline-block';
+  document.getElementById('nfc-hint').style.display = 'none';
+
+  setTimeout(() => getCurrentTrack(), 1000);
+}
+
+async function getCurrentTrack() {
+  await ensureToken();
+  const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  if (response.status === 200) {
+    const data = await response.json();
+    if (data && data.item) {
+      currentTrackName = data.item.name;
+      currentArtistName = data.item.artists.map(a => a.name).join(', ');
+      document.getElementById('song-name').textContent = currentTrackName;
+      document.getElementById('artist-name').textContent = currentArtistName;
+    }
+  }
+}
+
+function revealSong() {
+  document.getElementById('song-name').classList.add('show');
+  document.getElementById('artist-name').classList.add('show');
+  document.getElementById('reveal-btn').textContent = '✅ ' + currentTrackName;
+  document.getElementById('reveal-btn').style.color = '#1DB954';
+  document.getElementById('reveal-btn').style.borderColor = '#1DB954';
+}
+
+function setStatus(icon, text) {
+  document.getElementById('status-icon').textContent = icon;
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-icon').classList.remove('pulse');
+}
+
+function resetPlayer() {
+  document.getElementById('status-icon').textContent = '📡';
+  document.getElementById('status-icon').classList.add('pulse');
+  document.getElementById('status-text').textContent = '靠近 NFC 卡開始播放';
+  document.getElementById('playing-indicator').classList.remove('show');
+  document.getElementById('song-name').classList.remove('show');
+  document.getElementById('artist-name').classList.remove('show');
+  document.getElementById('reveal-btn').style.display = 'none';
+  document.getElementById('reveal-btn').textContent = '揭曉答案 👀';
+  document.getElementById('reveal-btn').style.color = '#666';
+  document.getElementById('reveal-btn').style.borderColor = '#333';
+  document.getElementById('nfc-hint').style.display = 'block';
+  currentTrackName = '';
+  currentArtistName = '';
+}
+
+function showPlayer() {
+  document.getElementById('login-section').style.display = 'none';
+  document.getElementById('player-section').style.display = 'block';
+}
+
+function showLogin() {
+  document.getElementById('login-section').style.display = 'flex';
+  document.getElementById('player-section').style.display = 'none';
+}
+
+async function init() {
+  const callbackHandled = await handleCallback();
+  if (callbackHandled) {
+    showPlayer();
+    return;
+  }
+
+  const token = localStorage.getItem('spotify_token');
+  const expires = localStorage.getItem('spotify_expires');
+
+  if (token && expires && Date.now() < expires) {
+    accessToken = token;
+    showPlayer();
+    return;
+  }
+
+  if (localStorage.getItem('spotify_refresh')) {
+    const ok = await refreshToken();
+    if (ok) { showPlayer(); return; }
+  }
+
+  showLogin();
+}
+
+// 偵測 NFC（從網址參數觸發）
+function checkNFCTrigger() {
+  const params = new URLSearchParams(window.location.search);
+  const uri = params.get('uri');
+  if (uri && accessToken) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    resetPlayer();
+    setTimeout(() => playTrack(uri), 300);
+  }
+}
+
+init().then(() => {
+  if (accessToken) checkNFCTrigger();
+});
+
+// 定期重設（換歌準備）
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && accessToken) checkNFCTrigger();
+});
+</script>
+</body>
+</html>
