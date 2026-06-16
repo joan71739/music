@@ -619,8 +619,13 @@ function parsePlayParams() {
 }
 
 /* ──────────────────────────────────────────
-   PAUSE / RESUME
+   PAUSE / RESUME  (含計時器凍結)
 ────────────────────────────────────────── */
+// 計時器狀態
+let timerRemainingMs = 0;   // 暫停時記錄剩餘毫秒
+let timerStartedAt   = 0;   // 本段開始跑的時間戳
+let tickHandle       = null;
+
 function showPlayPause(show) {
   const btn = document.getElementById('playpause-btn');
   if (show) btn.classList.add('show'); else btn.classList.remove('show');
@@ -631,48 +636,74 @@ function syncPlayPauseIcon() {
 }
 
 async function togglePlayPause() {
-  if (isTimerDone) return;          // 時間到，鎖定不給操作
+  if (isTimerDone) return;
   const t = await getToken();
   if (!t) return;
 
   if (isPaused) {
-    // 繼續播放
+    // ── 繼續 ──
     await fetch('https://api.spotify.com/v1/me/player/play', {
-      method: 'PUT',
-      headers: { Authorization: 'Bearer ' + t }
+      method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = false;
     setStatus('🎵', '播放中');
     document.getElementById('playing-indicator').classList.add('show');
     syncPlayPauseIcon();
+    // 從剩餘時間重新跑計時器
+    resumeTimer();
   } else {
-    // 暫停
+    // ── 暫停 ──
     await fetch('https://api.spotify.com/v1/me/player/pause', {
-      method: 'PUT',
-      headers: { Authorization: 'Bearer ' + t }
+      method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = true;
     setStatus('⏸️', '已暫停');
     document.getElementById('playing-indicator').classList.remove('show');
     syncPlayPauseIcon();
+    // 凍結計時器
+    pauseTimer();
   }
 }
 
+/* 凍結計時器：算出剩餘毫秒，停掉所有計時 */
+function pauseTimer() {
+  if (!timerStartedAt) return;
+  const elapsed = Date.now() - timerStartedAt;
+  timerRemainingMs = Math.max(0, timerRemainingMs - elapsed);
+  timerStartedAt = 0;
 
-function startTimer(durationMs) {
   clearTimeout(timerHandle);
+  clearInterval(tickHandle);
+
+  // 凍結進度條：讀出目前寬度並鎖住
+  const bar = document.getElementById('timer-bar');
+  const computed = getComputedStyle(bar).width;
+  bar.style.transition = 'none';
+  bar.style.width = computed;
+
+  // 更新 label
+  document.getElementById('timer-label').textContent =
+    Math.ceil(timerRemainingMs / 1000) + ' 秒（暫停）';
+}
+
+/* 從剩餘時間恢復計時器 */
+function resumeTimer() {
+  if (timerRemainingMs <= 0) return;
+  runTimer(timerRemainingMs);
+}
+
+/* 實際跑計時（供 startTimer 和 resumeTimer 共用） */
+function runTimer(durationMs) {
+  clearTimeout(timerHandle);
+  clearInterval(tickHandle);
+
+  timerRemainingMs = durationMs;
+  timerStartedAt   = Date.now();
+
   const bar   = document.getElementById('timer-bar');
   const label = document.getElementById('timer-label');
-  const wrap  = document.getElementById('timer-wrap');
 
-  wrap.classList.add('show');
-  bar.style.transition = 'none';
-  bar.style.width = '100%';
-
-  const totalSec = Math.round(durationMs / 1000);
-  label.textContent = totalSec + ' 秒';
-
-  // Start shrink
+  // 進度條從目前位置縮到 0
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       bar.style.transition = `width ${durationMs}ms linear`;
@@ -680,24 +711,25 @@ function startTimer(durationMs) {
     });
   });
 
-  // Countdown label
-  let remaining = totalSec;
-  const tick = setInterval(() => {
+  // 倒數 label（每秒更新）
+  let remaining = Math.ceil(durationMs / 1000);
+  label.textContent = remaining + ' 秒';
+  tickHandle = setInterval(() => {
     remaining--;
-    if (remaining <= 0) { clearInterval(tick); label.textContent = '時間到！'; }
+    if (remaining <= 0) { clearInterval(tickHandle); label.textContent = '時間到！'; }
     else label.textContent = remaining + ' 秒';
   }, 1000);
 
-  // Pause after duration
+  // 時間到自動暫停
   timerHandle = setTimeout(async () => {
-    clearInterval(tick);
-    isTimerDone = true;
-    showPlayPause(false);   // 時間到，隱藏按鈕
+    clearInterval(tickHandle);
+    isTimerDone    = true;
+    timerStartedAt = 0;
+    showPlayPause(false);
     const t = await getToken();
     if (t) {
       await fetch('https://api.spotify.com/v1/me/player/pause', {
-        method: 'PUT',
-        headers: { Authorization: 'Bearer ' + t }
+        method: 'PUT', headers: { Authorization: 'Bearer ' + t }
       });
     }
     setStatus('⏸️', '試聽結束，等待揭曉');
@@ -705,10 +737,22 @@ function startTimer(durationMs) {
   }, durationMs);
 }
 
+function startTimer(durationMs) {
+  const wrap = document.getElementById('timer-wrap');
+  wrap.classList.add('show');
+  const bar = document.getElementById('timer-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  runTimer(durationMs);
+}
+
 function resetTimer() {
   clearTimeout(timerHandle);
-  isTimerDone = false;
-  isPaused    = false;
+  clearInterval(tickHandle);
+  isTimerDone      = false;
+  isPaused         = false;
+  timerRemainingMs = 0;
+  timerStartedAt   = 0;
   showPlayPause(false);
   const wrap = document.getElementById('timer-wrap');
   wrap.classList.remove('show');
