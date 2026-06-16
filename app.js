@@ -327,8 +327,9 @@ function addToPlayedPlaylist(trackUri) {
   const today = new Date().toDateString();
   const key = 'played_' + today;
   const played = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!played.includes(trackUri)) {
-    played.push(trackUri);
+  const exists = played.find(item => item.uri === trackUri);
+  if (!exists) {
+    played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
     localStorage.setItem(key, JSON.stringify(played));
   }
   showToast();
