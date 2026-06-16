@@ -325,16 +325,7 @@ async function doDebug() {
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
-async function init() {
-  applySettingsToUI(loadSettings());
-  const ok = await handleCallback();
-  if (ok) { showView('player'); checkNFC(); return; }
-  const t = await getToken();
-  if (t) { showView('player'); checkNFC(); return; }
-  showView('login');
-}
-
-  async function addToPlayedPlaylist(trackUri) {
+async function addToPlayedPlaylist(trackUri) {
   const t = await getToken();
   if (!t) return;
   try {
@@ -352,5 +343,14 @@ function showToast() {
   toast.style.opacity = '1';
   setTimeout(() => { toast.style.opacity = '0'; }, 3000);
 }
+
+async function init() {
+  applySettingsToUI(loadSettings());
+  const ok = await handleCallback();
+  if (ok) { showView('player'); checkNFC(); return; }
+  const t = await getToken();
+  if (t) { showView('player'); checkNFC(); return; }
+  showView('login');
+} 
 
 init();
