@@ -349,4 +349,24 @@ async function init() {
   showView('login');
 } 
 
+function togglePlayedList() {
+  const box = document.getElementById('played-list-box');
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  
+  const today = new Date().toDateString();
+  const played = JSON.parse(localStorage.getItem('played_' + today) || '[]');
+  
+  if (played.length === 0) {
+    box.innerHTML = '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
+  } else {
+    box.innerHTML = played.map(item => `
+      <div class="played-item">
+        <div class="played-song">${item.name || item}</div>
+        <div class="played-artist">${item.artist || ''}</div>
+      </div>
+    `).join('');
+  }
+  box.style.display = 'block';
+}
+
 init();
