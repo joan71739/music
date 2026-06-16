@@ -300,7 +300,9 @@ body {
 <script>
 const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES       = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private';
+
+const PLAYED_PLAYLIST_ID = '7DHJnThdLdcwIn9soYyIpT';
 
 let token = null, currentTrackName = '', currentArtistName = '';
 let timerHandle = null, isTimerDone = false, isPaused = false;
@@ -566,7 +568,10 @@ async function playTrack(uri, startMs, durationMs) {
       badge.classList.remove('show');
     }
     
-    setTimeout(getTrackInfo, 1000);
+    setTimeout(async () => {
+      await getTrackInfo();
+      await addToPlayedPlaylist(uri);
+    }, 1000);
     
     } else { setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）'); }
 }
@@ -629,7 +634,27 @@ async function init() {
   showView('login');
 }
 
+  async function addToPlayedPlaylist(trackUri) {
+  const t = await getToken();
+  if (!t) return;
+  try {
+    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/tracks`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: [trackUri] })
+    });
+    if (r.status === 201) showToast();
+  } catch(e) { console.error('加入清單失敗:', e); }
+}
+
+function showToast() {
+  const toast = document.getElementById('played-toast');
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
 init();
 </script>
+  <div id="played-toast" style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid rgba(29,185,84,0.3);color:#1DB954;font-size:12px;padding:8px 16px;border-radius:50px;opacity:0;transition:opacity 0.3s;white-space:nowrap;pointer-events:none;">✅ 已加入今日已播放清單</div>
 </body>
 </html>
