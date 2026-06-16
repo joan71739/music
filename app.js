@@ -334,24 +334,20 @@ function addToPlayedPlaylist(trackUri) {
     played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
     localStorage.setItem(key, JSON.stringify(played));
     
-    // 將當前歌名傳給 showToast
-    showToast(currentTrackName || '未知歌曲');
+    showToast();
   }
 }
 
-function showToast(songName) {
+function showToast() {
   const toast = document.getElementById('played-toast');
   
-  // 組裝帶有歌名的 HTML 內容
   toast.innerHTML = `
     <span class="toast-check">✓</span>
-    <span class="toast-song">${songName}</span> 已加入今日歌單
+    已加入今日歌單
   `;
   
-  // 加上 .show 觸發滑入動畫
   toast.classList.add('show');
   
-  // 重新設定自動隱藏的計時器
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => { 
     toast.classList.remove('show'); 
