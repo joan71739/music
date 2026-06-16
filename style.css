@@ -199,9 +199,48 @@ body {
 #played-list-box .played-song { color: var(--text); font-size: 13px; }
 #played-list-box .played-artist { color: var(--muted); font-size: 11px; }
 #played-toast {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  background: #1a1a1a; border: 1px solid rgba(29,185,84,0.3);
-  color: var(--green); font-size: 12px; padding: 8px 16px;
-  border-radius: 50px; opacity: 0; transition: opacity 0.3s;
-  white-space: nowrap; pointer-events: none; visibility: hidden;
+  position: fixed; 
+  top: -80px; /* 初始位置藏在畫面最上方 */
+  left: 50%; 
+  transform: translateX(-50%);
+  background: #252525; /* 深色背景，符合設計圖 */
+  border: 1px solid #333;
+  color: var(--muted); 
+  font-size: 13px; 
+  padding: 12px 18px;
+  border-radius: 8px; /* 方正一點的圓角 */
+  white-space: nowrap; 
+  pointer-events: none;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 帶有微微彈性的滑入動畫 */
+}
+
+/* 觸發顯示時的位置 */
+#played-toast.show {
+  top: 24px; /* 從頂部滑入到這個位置 */
+}
+
+/* 綠色小勾勾樣式 */
+.toast-check {
+  background: var(--green);
+  color: #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-right: 8px;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+/* 歌名強調樣式 */
+.toast-song {
+  color: #fff;
+  font-weight: 600;
+  margin-right: 6px;
 }
