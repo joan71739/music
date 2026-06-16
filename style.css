@@ -189,10 +189,12 @@ body {
   border-radius: 50px; padding: 3px 10px; margin-bottom: 1rem;
 }
 #mode-badge.show { display: inline-block; }
-#played-toast {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  background: #1a1a1a; border: 1px solid rgba(29,185,84,0.3);
-  color: var(--green); font-size: 12px; padding: 8px 16px;
-  border-radius: 50px; opacity: 0; transition: opacity 0.3s;
-  white-space: nowrap; pointer-events: none;
+#played-list-box {
+  margin-top: 0.8rem; font-size: 12px; color: var(--muted);
+  background: var(--surface); padding: 0.8rem; border-radius: 8px;
+  width: 100%; max-width: 360px; display: none; border: 1px solid var(--border);
 }
+#played-list-box .played-item { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+#played-list-box .played-item:last-child { border-bottom: none; }
+#played-list-box .played-song { color: var(--text); font-size: 13px; }
+#played-list-box .played-artist { color: var(--muted); font-size: 11px; }
