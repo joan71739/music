@@ -326,7 +326,7 @@ async function doDebug() {
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
-async function addToPlayedPlaylist(trackUri) {
+sync function addToPlayedPlaylist(trackUri) {
   const t = await getToken();
   if (!t) return;
   try {
@@ -335,7 +335,9 @@ async function addToPlayedPlaylist(trackUri) {
       headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: [trackUri] })
     });
-    showToast(r.status);
+    const body = await r.json();
+    console.log('加入清單狀態:', r.status, JSON.stringify(body));
+    if (r.status === 201) showToast();
   } catch(e) { console.error('加入清單失敗:', e); }
 }
 
