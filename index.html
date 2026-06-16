@@ -87,30 +87,60 @@ body {
 .bar:nth-child(5) { height: 12px; animation-delay: 0.3s; }
 @keyframes bounce { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
 
-/* Song info */
-.song-info {
-  text-align: center;
-  min-height: 68px;
-  margin-bottom: 1.2rem;
+/* ── 頂部答案卡 ── */
+#answer-card {
+  width: 100%;
+  margin-bottom: 1.4rem;
+  cursor: pointer;
 }
-#song-name {
+#answer-hidden {
+  width: 100%;
+  background: var(--surface);
+  border: 1px dashed #2a2a2a;
+  border-radius: 14px;
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+#answer-hidden:hover { border-color: #444; background: #181818; }
+#answer-placeholder {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2a2a2a;
+  letter-spacing: 6px;
+}
+#answer-tap-hint {
+  font-size: 12px;
+  color: #3a3a3a;
+}
+#answer-revealed {
+  display: none;
+  width: 100%;
+  background: rgba(29,185,84,0.08);
+  border: 1px solid rgba(29,185,84,0.25);
+  border-radius: 14px;
+  padding: 1.1rem 1rem;
+  text-align: center;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }
+#answer-song-name {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text);
-  opacity: 0;
-  transition: opacity 0.5s;
+  color: var(--green);
   margin-bottom: 0.3rem;
   line-height: 1.3;
 }
-#artist-name {
+#answer-artist-name {
   font-size: 14px;
-  color: var(--subtle);
-  opacity: 0;
-  transition: opacity 0.5s;
+  color: #1a8a40;
 }
-#song-name.show, #artist-name.show { opacity: 1; }
 
-/* Timer bar */
+
 #timer-wrap {
   display: none;
   width: 100%;
@@ -156,21 +186,6 @@ body {
 }
 #playpause-btn:hover { background: var(--green-dim); opacity: 1; }
 #playpause-btn:active { transform: scale(0.92); }
-
-/* Reveal button */
-#reveal-btn {
-  display: none;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--subtle);
-  padding: 0.55rem 1.4rem;
-  border-radius: 50px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-bottom: 1.2rem;
-  transition: color 0.3s, border-color 0.3s;
-}
-#reveal-btn:hover { border-color: var(--green); color: var(--green); }
 
 /* ── SETTINGS PANEL ── */
 .settings-toggle {
@@ -352,6 +367,18 @@ body {
 <!-- ── PLAYER ── -->
 <div id="player-view">
 
+  <!-- ── 頂部答案卡 ── -->
+  <div id="answer-card">
+    <div id="answer-hidden" onclick="revealSong()">
+      <span id="answer-placeholder">？？？</span>
+      <span id="answer-tap-hint">點擊揭曉答案</span>
+    </div>
+    <div id="answer-revealed">
+      <div id="answer-song-name"></div>
+      <div id="answer-artist-name"></div>
+    </div>
+  </div>
+
   <!-- Status -->
   <div class="status-area">
     <div id="status-icon" class="pulse">📡</div>
@@ -366,15 +393,6 @@ body {
 
   <!-- Mode badge -->
   <div id="mode-badge"></div>
-
-  <!-- Song info -->
-  <div class="song-info">
-    <div id="song-name"></div>
-    <div id="artist-name"></div>
-  </div>
-
-  <!-- Reveal -->
-  <button id="reveal-btn" onclick="revealSong()">揭曉答案 👀</button>
 
   <!-- Timer bar -->
   <div id="timer-wrap">
@@ -810,7 +828,6 @@ async function playTrack(uri, startMs, durationMs) {
     setStatus('🎵', '播放中');
     isPaused = false;
     document.getElementById('playing-indicator').classList.add('show');
-    document.getElementById('reveal-btn').style.display = 'inline-block';
     showPlayPause(true);
     syncPlayPauseIcon();
 
@@ -839,19 +856,15 @@ async function getTrackInfo() {
     if (d && d.item) {
       currentTrackName  = d.item.name;
       currentArtistName = d.item.artists.map(a => a.name).join(', ');
-      document.getElementById('song-name').textContent  = currentTrackName;
-      document.getElementById('artist-name').textContent = currentArtistName;
     }
   }
 }
 
 function revealSong() {
-  document.getElementById('song-name').classList.add('show');
-  document.getElementById('artist-name').classList.add('show');
-  const btn = document.getElementById('reveal-btn');
-  btn.textContent     = '✅ ' + (currentTrackName || '（歌曲名稱）');
-  btn.style.color     = 'var(--green)';
-  btn.style.borderColor = 'var(--green)';
+  document.getElementById('answer-hidden').style.display   = 'none';
+  document.getElementById('answer-revealed').style.display = 'block';
+  document.getElementById('answer-song-name').textContent  = currentTrackName  || '（未知歌曲）';
+  document.getElementById('answer-artist-name').textContent = currentArtistName || '';
 }
 
 /* ──────────────────────────────────────────
@@ -863,15 +876,12 @@ function checkNFC() {
 
   window.history.replaceState({}, '', window.location.pathname);
 
-  // Reset UI
-  document.getElementById('song-name').classList.remove('show');
-  document.getElementById('artist-name').classList.remove('show');
-  const revealBtn = document.getElementById('reveal-btn');
-  revealBtn.style.display = 'none';
-  revealBtn.textContent = '揭曉答案 👀';
-  revealBtn.style.color = '';
-  revealBtn.style.borderColor = '';
-  currentTrackName = '';
+  // Reset answer card
+  document.getElementById('answer-hidden').style.display   = 'flex';
+  document.getElementById('answer-revealed').style.display = 'none';
+  document.getElementById('answer-song-name').textContent  = '';
+  document.getElementById('answer-artist-name').textContent = '';
+  currentTrackName  = '';
   currentArtistName = '';
 
   setTimeout(() => playTrack(params.uri, params.startMs, params.durationMs), 300);
