@@ -141,21 +141,22 @@ body {
 #playpause-btn {
   display: none;
   background: none;
-  border: 2px solid var(--green);
+  border: 1.5px solid var(--green);
   color: var(--green);
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
   margin-bottom: 1rem;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s, transform 0.12s;
   align-items: center;
   justify-content: center;
+  opacity: 0.75;
 }
 #playpause-btn.show { display: flex; }
-#playpause-btn:hover { background: var(--green-dim); }
-#playpause-btn:active { transform: scale(0.93); }
+#playpause-btn:hover { background: var(--green-dim); opacity: 1; }
+#playpause-btn:active { transform: scale(0.92); }
 
 /* Reveal button */
 #reveal-btn {
