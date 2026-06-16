@@ -79,32 +79,28 @@ body {
 
 /* 圓圈狀態圖示 */
 #status-ring {
-  width: 80px; height: 80px; border-radius: 50%;
+  width: 88px; height: 88px; border-radius: 50%;
   border: 1.5px solid #252525;
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.4s;
 }
-#status-ring.playing { border-color: rgba(29,185,84,0.35); gap: 3px; }
-#status-ring.ended   { border-color: rgba(29,185,84,0.15); }
+#status-ring.playing {
+  border-color: #1DB954;
+  animation: breathe 1.6s ease-in-out infinite;
+}
+#status-ring.ended { border-color: rgba(29,185,84,0.2); }
+@keyframes breathe {
+  0%,100% { border-color: rgba(29,185,84,0.25); }
+  50%      { border-color: rgba(29,185,84,1); }
+}
 
 /* 待機 / 結束時的 icon */
-#status-ring-icon { font-size: 30px; color: #2e2e2e; transition: color 0.3s; }
-#status-ring.ended #status-ring-icon { color: rgba(29,185,84,0.4); }
+#status-ring-icon { font-size: 38px; color: #2e2e2e; transition: color 0.4s, font-size 0.3s; }
+#status-ring.playing #status-ring-icon { color: #1DB954; }
+#status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
 
-/* 播放中音波條 */
-.ring-bar {
-  width: 3px; background: #1DB954; border-radius: 2px;
-  animation: rbar 1.2s ease-in-out infinite;
-  display: none;
-}
-#status-ring.playing .ring-bar { display: block; }
-#status-ring.playing #status-ring-icon { display: none; }
-.ring-bar:nth-child(1) { height: 8px;  animation-delay: 0s; }
-.ring-bar:nth-child(2) { height: 18px; animation-delay: 0.15s; }
-.ring-bar:nth-child(3) { height: 11px; animation-delay: 0.3s; }
-.ring-bar:nth-child(4) { height: 20px; animation-delay: 0.1s; }
-.ring-bar:nth-child(5) { height: 9px;  animation-delay: 0.25s; }
-@keyframes rbar { 0%,100%{ transform:scaleY(0.35); } 50%{ transform:scaleY(1); } }
+/* 音波條不再需要 */
+.ring-bar { display: none !important; }
 
 /* 舊的 playing-indicator 不再需要 */
 #playing-indicator { display: none !important; }
@@ -116,12 +112,14 @@ body {
 }
 #answer-hidden {
   width: 100%;
+  min-height: 100px;
   background: #1c1c1c;
   border-bottom: 1px solid #2a2a2a;
   padding: 1.8rem 1.5rem 1.6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   transition: background 0.2s;
   cursor: pointer;
@@ -140,9 +138,14 @@ body {
 #answer-revealed {
   display: none;
   width: 100%;
+  min-height: 100px;
   background: rgba(29,185,84,0.08);
   border-bottom: 1px solid rgba(29,185,84,0.2);
   padding: 1.8rem 1.5rem 1.6rem;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   animation: fadeIn 0.4s ease;
 }
@@ -550,7 +553,10 @@ function setStatus(state, text) {
   if (state === 'playing') {
     ring.classList.add('playing');
     icon.className = 'ti ti-music';
-  } else if (state === 'ended' || state === 'paused') {
+  } else if (state === 'ended') {
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+  } else if (state === 'paused') {
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
   } else {
@@ -893,9 +899,9 @@ async function getTrackInfo() {
 }
 
 function revealSong() {
-  document.getElementById('answer-hidden').style.display   = 'none';
-  document.getElementById('answer-revealed').style.display = 'block';
-  document.getElementById('answer-song-name').textContent  = currentTrackName  || '（未知歌曲）';
+  document.getElementById('answer-hidden').style.display    = 'none';
+  document.getElementById('answer-revealed').style.display  = 'flex';
+  document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
   document.getElementById('answer-artist-name').textContent = currentArtistName || '';
 }
 
