@@ -97,7 +97,7 @@ function login() {
 }
 
 function doLogout() {
-  localStorage.removeItem('spotify_token'); localStorage.removeItem('spotify_refresh'); localStorage.removeItem('spotify_expires');
+  localStorage.clear();
   token = null; showView('login');
 }
 
