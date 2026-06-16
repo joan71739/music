@@ -469,7 +469,7 @@ function runTimer(durationMs) {
     clearInterval(tickHandle); isTimerDone = true; timerStartedAt = 0; showPlayPause(false);
     const t = await getToken();
     if (t) await fetch('https://api.spotify.com/v1/me/player/pause', { method: 'PUT', headers: { Authorization: 'Bearer ' + t } });
-    setStatus('ended', '試聽結束，等待揭曉');
+    setStatus('ended', '音樂結束，等待揭曉');
   }, durationMs);
 }
 
