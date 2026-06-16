@@ -527,6 +527,8 @@ async function playTrack(uri, startMs, durationMs) {
     }
     
     setTimeout(getTrackInfo, 1000);
+    
+    } else { setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）'); }
 }
 
 async function getTrackInfo() {
