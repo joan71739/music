@@ -110,23 +110,23 @@ body {
   width: 100%;
   background: #1c1c1c;
   border-bottom: 1px solid #2a2a2a;
-  padding: 1.4rem 1.5rem 1.2rem;
+  padding: 1.8rem 1.5rem 1.6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   transition: background 0.2s;
   cursor: pointer;
 }
 #answer-hidden:hover { background: #202020; }
 #answer-placeholder {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: #444;
   letter-spacing: 6px;
 }
 #answer-tap-hint {
-  font-size: 12px;
+  font-size: 14px;
   color: #555;
 }
 #answer-revealed {
@@ -313,14 +313,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-}
-
-/* ── BOTTOM ACTIONS ── */
-.bottom-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
 }
 .btn-sm {
   background: none;
@@ -437,6 +429,13 @@ body {
     <!-- Settings panel -->
     <div id="settings-panel">
       <div class="setting-row">
+        <div class="setting-label">開始位置<small>從第幾秒播起</small></div>
+        <div style="display:flex;align-items:center">
+          <input type="number" class="num-input" id="setting-start" value="0" min="0" max="600" onchange="saveSettings()">
+          <span class="setting-unit">秒</span>
+        </div>
+      </div>
+      <div class="setting-row">
         <div class="setting-label">限時播放<small>關閉則完整播放</small></div>
         <label class="toggle-switch">
           <input type="checkbox" id="setting-limit" onchange="saveSettings()">
@@ -447,13 +446,6 @@ body {
         <div class="setting-label">播放時長<small>限時模式使用</small></div>
         <div style="display:flex;align-items:center">
           <input type="number" class="num-input" id="setting-duration" value="30" min="1" max="300" onchange="saveSettings()">
-          <span class="setting-unit">秒</span>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-label">開始位置<small>從第幾秒播起</small></div>
-        <div style="display:flex;align-items:center">
-          <input type="number" class="num-input" id="setting-start" value="0" min="0" max="600" onchange="saveSettings()">
           <span class="setting-unit">秒</span>
         </div>
       </div>
@@ -471,10 +463,8 @@ body {
 
   <!-- Footer -->
   <div id="player-footer">
-    <div class="bottom-actions">
-      <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
-      <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
-    </div>
+    <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
+    <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
   </div>
 
 </div>
@@ -915,6 +905,10 @@ function checkNFC() {
 ────────────────────────────────────────── */
 async function doDebug() {
   const box = document.getElementById('debug-box');
+  if (box.style.display === 'block') {
+    box.style.display = 'none';
+    return;
+  }
   box.style.display = 'block';
   box.textContent   = '測試中...\n';
 
