@@ -75,31 +75,39 @@ body {
   align-items: center;
   justify-content: center;
 }
-#status-icon { font-size: 72px; margin-bottom: 0.8rem; }
-#status-text { font-size: 15px; color: var(--muted); }
+#status-text { font-size: 15px; color: var(--muted); margin-top: 0.9rem; }
 
-/* Playing indicator */
-#playing-indicator {
+/* 圓圈狀態圖示 */
+#status-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 1.5px solid #252525;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.4s;
+}
+#status-ring.playing { border-color: rgba(29,185,84,0.35); gap: 3px; }
+#status-ring.ended   { border-color: rgba(29,185,84,0.15); }
+
+/* 待機 / 結束時的 icon */
+#status-ring-icon { font-size: 30px; color: #2e2e2e; transition: color 0.3s; }
+#status-ring.ended #status-ring-icon { color: rgba(29,185,84,0.4); }
+
+/* 播放中音波條 */
+.ring-bar {
+  width: 3px; background: #1DB954; border-radius: 2px;
+  animation: rbar 1.2s ease-in-out infinite;
   display: none;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 4px;
-  height: 28px;
-  margin-bottom: 0.8rem;
 }
-#playing-indicator.show { display: flex; }
-.bar {
-  width: 4px;
-  background: var(--green);
-  border-radius: 2px;
-  animation: bounce 1.2s ease-in-out infinite;
-}
-.bar:nth-child(1) { height: 10px; animation-delay: 0s; }
-.bar:nth-child(2) { height: 22px; animation-delay: 0.2s; }
-.bar:nth-child(3) { height: 16px; animation-delay: 0.4s; }
-.bar:nth-child(4) { height: 26px; animation-delay: 0.1s; }
-.bar:nth-child(5) { height: 12px; animation-delay: 0.3s; }
-@keyframes bounce { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+#status-ring.playing .ring-bar { display: block; }
+#status-ring.playing #status-ring-icon { display: none; }
+.ring-bar:nth-child(1) { height: 8px;  animation-delay: 0s; }
+.ring-bar:nth-child(2) { height: 18px; animation-delay: 0.15s; }
+.ring-bar:nth-child(3) { height: 11px; animation-delay: 0.3s; }
+.ring-bar:nth-child(4) { height: 20px; animation-delay: 0.1s; }
+.ring-bar:nth-child(5) { height: 9px;  animation-delay: 0.25s; }
+@keyframes rbar { 0%,100%{ transform:scaleY(0.35); } 50%{ transform:scaleY(1); } }
+
+/* 舊的 playing-indicator 不再需要 */
+#playing-indicator { display: none !important; }
 
 /* ── 頂部答案卡 ── */
 #answer-card {
@@ -402,15 +410,16 @@ body {
   <!-- Status -->
   <div id="play-body">
     <div class="status-area">
-      <div id="status-icon" class="pulse">📡</div>
+      <div id="status-ring">
+        <i id="status-ring-icon" class="ti ti-radio" aria-hidden="true"></i>
+        <div class="ring-bar"></div><div class="ring-bar"></div><div class="ring-bar"></div>
+        <div class="ring-bar"></div><div class="ring-bar"></div>
+      </div>
       <div id="status-text">靠近 NFC 卡開始播放</div>
     </div>
 
-    <!-- Playing indicator -->
-    <div id="playing-indicator">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div>
-    </div>
+    <!-- Playing indicator (hidden, kept for JS compat) -->
+    <div id="playing-indicator"></div>
 
     <!-- Mode badge -->
     <div id="mode-badge"></div>
@@ -533,10 +542,20 @@ function showView(name) {
   document.getElementById('player-view').style.display = name === 'player' ? 'flex'  : 'none';
 }
 
-function setStatus(icon, text, pulse = false) {
-  const el = document.getElementById('status-icon');
-  el.textContent = icon;
-  el.className = pulse ? 'pulse' : '';
+function setStatus(state, text) {
+  const ring = document.getElementById('status-ring');
+  const icon = document.getElementById('status-ring-icon');
+  ring.classList.remove('playing', 'ended');
+
+  if (state === 'playing') {
+    ring.classList.add('playing');
+    icon.className = 'ti ti-music';
+  } else if (state === 'ended' || state === 'paused') {
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+  } else {
+    icon.className = 'ti ti-radio';
+  }
   document.getElementById('status-text').textContent = text;
 }
 
@@ -683,7 +702,7 @@ async function togglePlayPause() {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = false;
-    setStatus('🎵', '播放中');
+    setStatus('playing', '播放中');
     document.getElementById('playing-indicator').classList.add('show');
     syncPlayPauseIcon();
     // 從剩餘時間重新跑計時器
@@ -694,7 +713,7 @@ async function togglePlayPause() {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = true;
-    setStatus('⏸️', '已暫停');
+    setStatus('paused', '已暫停');
     document.getElementById('playing-indicator').classList.remove('show');
     syncPlayPauseIcon();
     // 凍結計時器
@@ -769,7 +788,7 @@ function runTimer(durationMs) {
         method: 'PUT', headers: { Authorization: 'Bearer ' + t }
       });
     }
-    setStatus('⏸️', '試聽結束，等待揭曉');
+    setStatus('ended', '試聽結束，等待揭曉');
     document.getElementById('playing-indicator').classList.remove('show');
   }, durationMs);
 }
@@ -803,28 +822,28 @@ function resetTimer() {
 ────────────────────────────────────────── */
 async function playTrack(uri, startMs, durationMs) {
   resetTimer();
-  setStatus('⏳', '連線中...');
+  setStatus('idle', '連線中...');
   document.getElementById('playing-indicator').classList.remove('show');
   document.getElementById('mode-badge').classList.remove('show');
 
   const t = await getToken();
-  if (!t) { setStatus('⚠️', '請重新登入'); showView('login'); return; }
+  if (!t) { setStatus('idle', '請重新登入'); showView('login'); return; }
 
-  setStatus('⏳', '尋找裝置...');
+  setStatus('idle', '尋找裝置...');
   const dr = await fetch('https://api.spotify.com/v1/me/player/devices', {
     headers: { Authorization: 'Bearer ' + t }
   });
-  if (dr.status === 401) { setStatus('⚠️', '登入過期，請重新登入'); doLogout(); return; }
+  if (dr.status === 401) { setStatus('idle', '登入過期，請重新登入'); doLogout(); return; }
 
   const dd      = await dr.json();
   const devices = dd.devices || [];
   if (devices.length === 0) {
-    setStatus('⚠️', '找不到裝置！請先開啟 Spotify app');
+    setStatus('idle', '找不到裝置！請先開啟 Spotify app');
     return;
   }
 
   const dev = devices.find(d => d.is_active) || devices[0];
-  setStatus('⏳', '切換歌曲...');
+  setStatus('idle', '切換歌曲...');
 
   const body = { uris: [uri] };
   if (startMs && startMs > 0) body.position_ms = startMs;
@@ -835,10 +854,10 @@ async function playTrack(uri, startMs, durationMs) {
     body: JSON.stringify(body)
   });
 
-  if (pr.status === 403) { setStatus('⚠️', '需要 Spotify Premium'); return; }
+  if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
   if (pr.status === 204 || pr.status === 200) {
-    setStatus('🎵', '播放中');
+    setStatus('playing', '播放中');
     isPaused = false;
     document.getElementById('playing-indicator').classList.add('show');
     showPlayPause(true);
@@ -854,7 +873,7 @@ async function playTrack(uri, startMs, durationMs) {
 
     setTimeout(getTrackInfo, 1000);
   } else {
-    setStatus('⚠️', '播放失敗（狀態碼 ' + pr.status + '）');
+    setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）');
   }
 }
 
