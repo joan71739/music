@@ -79,11 +79,16 @@ body {
 
 /* 圓圈狀態圖示 */
 #status-ring {
-  width: 140px; height: 140px; border-radius: 50%;
+  width: 160px; height: 160px; border-radius: 50%;
   border: 1.5px solid #252525;
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.4s;
+  cursor: default;
 }
+#status-ring.clickable {
+  cursor: pointer;
+}
+#status-ring.clickable:active { transform: scale(0.95); }
 #status-ring.playing {
   border-color: #1DB954;
   animation: breathe 1.6s ease-in-out infinite;
@@ -95,7 +100,7 @@ body {
 }
 
 /* 待機 / 結束時的 icon */
-#status-ring-icon { font-size: 68px; color: #2e2e2e; transition: color 0.4s; }
+#status-ring-icon { font-size: 78px; color: #2e2e2e; transition: color 0.4s; }
 #status-ring.playing #status-ring-icon { color: #1DB954; }
 #status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
 
@@ -112,7 +117,7 @@ body {
 }
 #answer-hidden {
   width: 100%;
-  min-height: 100px;
+  min-height: 110px;
   background: #1c1c1c;
   border-bottom: 1px solid #2a2a2a;
   padding: 1.8rem 1.5rem 1.6rem;
@@ -136,9 +141,8 @@ body {
   color: #555;
 }
 #answer-revealed {
-  display: none;
   width: 100%;
-  min-height: 100px;
+  min-height: 110px;
   background: rgba(29,185,84,0.08);
   border-bottom: 1px solid rgba(29,185,84,0.2);
   padding: 1.8rem 1.5rem 1.6rem;
@@ -147,6 +151,7 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
+  cursor: pointer;
   animation: fadeIn 0.4s ease;
 }
 @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
@@ -416,7 +421,7 @@ body {
   <!-- Status -->
   <div id="play-body">
     <div class="status-area">
-      <div id="status-ring">
+      <div id="status-ring" onclick="ringTogglePlayPause()">
         <i id="status-ring-icon" class="ti ti-radio" aria-hidden="true"></i>
         <div class="ring-bar"></div><div class="ring-bar"></div><div class="ring-bar"></div>
         <div class="ring-bar"></div><div class="ring-bar"></div>
@@ -687,9 +692,14 @@ function parsePlayParams() {
   return { uri, startMs: resolvedStartMs, durationMs: resolvedDurationMs };
 }
 
-/* ──────────────────────────────────────────
-   PAUSE / RESUME  (含計時器凍結)
-────────────────────────────────────────── */
+function ringTogglePlayPause() {
+  if (isTimerDone) return;
+  const ring = document.getElementById('status-ring');
+  if (!ring.classList.contains('clickable')) return;
+  togglePlayPause();
+}
+
+
 // 計時器狀態
 let timerRemainingMs = 0;   // 暫停時記錄剩餘毫秒
 let timerStartedAt   = 0;   // 本段開始跑的時間戳
@@ -698,6 +708,9 @@ let tickHandle       = null;
 function showPlayPause(show) {
   const toolbar = document.getElementById('playback-toolbar');
   toolbar.style.display = show ? 'flex' : 'none';
+  const ring = document.getElementById('status-ring');
+  if (show) ring.classList.add('clickable');
+  else ring.classList.remove('clickable');
 }
 function syncPlayPauseIcon() {
   const icon = document.getElementById('playpause-icon');
