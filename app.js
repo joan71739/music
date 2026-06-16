@@ -1,6 +1,6 @@
 const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private';
+const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
 
 let token = null, currentTrackName = '', currentArtistName = '';
 let timerHandle = null, isTimerDone = false, isPaused = false;
