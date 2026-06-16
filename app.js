@@ -331,8 +331,8 @@ function addToPlayedPlaylist(trackUri) {
   if (!exists) {
     played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
     localStorage.setItem(key, JSON.stringify(played));
+    showToast();
   }
-  showToast();
 }
 
 function showToast() {
