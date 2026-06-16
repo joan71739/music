@@ -474,12 +474,7 @@ body {
       </div>
     </div>
 
-    <!-- Playback toolbar -->
-    <div id="playback-toolbar" style="display:none; align-items:center; justify-content:center; width:100%; max-width:360px; margin-bottom:0.8rem;">
-      <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
-        <i id="playpause-icon" class="ti ti-player-pause"></i>
-      </button>
-    </div>
+
 
     <div id="debug-box"></div>
   </div>
@@ -727,8 +722,6 @@ let timerStartedAt   = 0;   // 本段開始跑的時間戳
 let tickHandle       = null;
 
 function showPlayPause(show) {
-  const toolbar = document.getElementById('playback-toolbar');
-  toolbar.style.display = show ? 'flex' : 'none';
   const ring = document.getElementById('status-ring');
   if (show) ring.classList.add('clickable');
   else ring.classList.remove('clickable');
@@ -749,9 +742,8 @@ async function togglePlayPause() {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = false;
-    setStatus('playing', '播放中');
+    setStatus('playing', '播放中 — 點圓圈暫停');
     document.getElementById('playing-indicator').classList.add('show');
-    syncPlayPauseIcon();
     // 從剩餘時間重新跑計時器
     resumeTimer();
   } else {
@@ -760,9 +752,8 @@ async function togglePlayPause() {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t }
     });
     isPaused = true;
-    setStatus('paused', '已暫停');
+    setStatus('paused', '已暫停 — 點圓圈繼續');
     document.getElementById('playing-indicator').classList.remove('show');
-    syncPlayPauseIcon();
     // 凍結計時器
     pauseTimer();
   }
@@ -904,11 +895,10 @@ async function playTrack(uri, startMs, durationMs) {
   if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
   if (pr.status === 204 || pr.status === 200) {
-    setStatus('playing', '播放中');
+    setStatus('playing', '播放中 — 點圓圈暫停');
     isPaused = false;
     document.getElementById('playing-indicator').classList.add('show');
     showPlayPause(true);
-    syncPlayPauseIcon();
 
     // Mode badge
     if (durationMs) {
