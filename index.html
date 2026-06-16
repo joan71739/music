@@ -140,7 +140,6 @@ body {
 
 /* Pause/Resume button */
 #playpause-btn {
-  display: none;
   background: none;
   border: 1.5px solid var(--green);
   color: var(--green);
@@ -149,13 +148,12 @@ body {
   border-radius: 50%;
   font-size: 20px;
   cursor: pointer;
-  margin-bottom: 1rem;
   transition: background 0.2s, transform 0.12s;
+  display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.75;
 }
-#playpause-btn.show { display: flex; }
 #playpause-btn:hover { background: var(--green-dim); opacity: 1; }
 #playpause-btn:active { transform: scale(0.92); }
 
@@ -381,11 +379,6 @@ body {
     <div id="timer-label"></div>
   </div>
 
-  <!-- Pause / Resume -->
-  <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
-    <i id="playpause-icon" class="ti ti-player-pause"></i>
-  </button>
-
   <!-- Reveal -->
   <button id="reveal-btn" onclick="revealSong()">揭曉答案 👀</button>
 
@@ -424,6 +417,14 @@ body {
       </div>
     </div>
 
+  </div>
+
+  <!-- Playback toolbar (divider + pause/resume) -->
+  <div id="playback-toolbar" style="display:none; flex-direction:column; align-items:center; width:100%; gap:0.8rem; margin-bottom:0.5rem">
+    <div style="width:100%; height:1px; background:var(--border);"></div>
+    <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
+      <i id="playpause-icon" class="ti ti-player-pause"></i>
+    </button>
   </div>
 
   <!-- Bottom actions -->
@@ -631,8 +632,8 @@ let timerStartedAt   = 0;   // 本段開始跑的時間戳
 let tickHandle       = null;
 
 function showPlayPause(show) {
-  const btn = document.getElementById('playpause-btn');
-  if (show) btn.classList.add('show'); else btn.classList.remove('show');
+  const toolbar = document.getElementById('playback-toolbar');
+  toolbar.style.display = show ? 'flex' : 'none';
 }
 
 function syncPlayPauseIcon() {
