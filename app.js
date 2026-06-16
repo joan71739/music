@@ -6,6 +6,7 @@ let token = null, currentTrackName = '', currentArtistName = '';
 let timerHandle = null, isTimerDone = false, isPaused = false;
 let timerRemainingMs = 0, timerStartedAt = 0, tickHandle = null;
 let isRevealed = false;
+let toastTimeout;
 
 function loadSettings() {
   const raw = localStorage.getItem('player_settings');
@@ -328,20 +329,32 @@ function addToPlayedPlaylist(trackUri) {
   const key = 'played_' + today;
   const played = JSON.parse(localStorage.getItem(key) || '[]');
   const exists = played.find(item => item.uri === trackUri);
+  
   if (!exists) {
     played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
     localStorage.setItem(key, JSON.stringify(played));
-    showToast();
+    
+    // 將當前歌名傳給 showToast
+    showToast(currentTrackName || '未知歌曲');
   }
 }
 
-function showToast() {
+function showToast(songName) {
   const toast = document.getElementById('played-toast');
-  toast.style.visibility = 'visible';
-  toast.style.opacity = '1';
-  setTimeout(() => { 
-    toast.style.opacity = '0';
-    setTimeout(() => { toast.style.visibility = 'hidden'; }, 300);
+  
+  // 組裝帶有歌名的 HTML 內容
+  toast.innerHTML = `
+    <span class="toast-check">✓</span>
+    <span class="toast-song">${songName}</span> 已加入今日歌單
+  `;
+  
+  // 加上 .show 觸發滑入動畫
+  toast.classList.add('show');
+  
+  // 重新設定自動隱藏的計時器
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { 
+    toast.classList.remove('show'); 
   }, 3000);
 }
 
