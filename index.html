@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>金曲擴充播放器</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -381,7 +382,9 @@ body {
   </div>
 
   <!-- Pause / Resume -->
-  <button id="playpause-btn" onclick="togglePlayPause()">⏸</button>
+  <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
+    <i id="playpause-icon" class="ti ti-player-pause"></i>
+  </button>
 
   <!-- Reveal -->
   <button id="reveal-btn" onclick="revealSong()">揭曉答案 👀</button>
@@ -633,7 +636,8 @@ function showPlayPause(show) {
 }
 
 function syncPlayPauseIcon() {
-  document.getElementById('playpause-btn').textContent = isPaused ? '▶' : '⏸';
+  const icon = document.getElementById('playpause-icon');
+  icon.className = isPaused ? 'ti ti-player-play' : 'ti ti-player-pause';
 }
 
 async function togglePlayPause() {
