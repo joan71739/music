@@ -312,6 +312,7 @@ async function doDebug() {
   box.textContent += 'Token: ' + (t ? t.substring(0,15) + '...' : '無') + '\n';
   box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
   box.textContent += 'accessToken 變數: ' + (token ? '有' : '無') + '\n\n';
+  box.textContent += 'Playlist ID: ' + PLAYED_PLAYLIST_ID + '\n';
   const s = loadSettings();
   box.textContent += '限時模式: ' + s.limitMode + '\n播放秒數: ' + s.durationSec + '\n開始位置: ' + s.startSec + '秒\n\n';
   if (!t) { box.textContent += '沒有 Token，請重新登入'; return; }
@@ -334,14 +335,15 @@ async function addToPlayedPlaylist(trackUri) {
       headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: [trackUri] })
     });
-    if (r.status === 201) showToast();
+    showToast(r.status);
   } catch(e) { console.error('加入清單失敗:', e); }
 }
 
-function showToast() {
+function showToast(status) {
   const toast = document.getElementById('played-toast');
+  toast.textContent = '加入清單狀態: ' + (status || 'OK');
   toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  setTimeout(() => { toast.style.opacity = '0'; }, 5000);
 }
 
 async function init() {
