@@ -198,3 +198,10 @@ body {
 #played-list-box .played-item:last-child { border-bottom: none; }
 #played-list-box .played-song { color: var(--text); font-size: 13px; }
 #played-list-box .played-artist { color: var(--muted); font-size: 11px; }
+#played-toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #1a1a1a; border: 1px solid rgba(29,185,84,0.3);
+  color: var(--green); font-size: 12px; padding: 8px 16px;
+  border-radius: 50px; opacity: 0; transition: opacity 0.3s;
+  white-space: nowrap; pointer-events: none; visibility: hidden;
+}
