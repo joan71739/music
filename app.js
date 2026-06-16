@@ -333,6 +333,16 @@ async function doDebug() {
     const testBody = await testR.json();
     box.textContent += '\n加入清單測試: ' + testR.status + '\n';
     box.textContent += JSON.stringify(testBody) + '\n';
+
+    // 測試取得自己的資料
+    const meR = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + t } });
+    const meBody = await meR.json();
+    box.textContent += '\n我的帳號: ' + meBody.id + '\n';
+    
+    // 測試取得這個 playlist 的資訊
+    const plR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}`, { headers: { Authorization: 'Bearer ' + t } });
+    const plBody = await plR.json();
+    box.textContent += 'Playlist 擁有者: ' + plBody?.owner?.id + '\n';
     
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
