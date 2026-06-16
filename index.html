@@ -27,7 +27,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   user-select: none;
 }
 
@@ -35,6 +34,11 @@ body {
 #login-view {
   text-align: center;
   padding: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .login-icon { font-size: 64px; margin-bottom: 1.2rem; }
 .login-title { font-size: 24px; font-weight: 700; margin-bottom: 0.4rem; }
@@ -44,18 +48,28 @@ body {
 #player-view {
   width: 100%;
   max-width: 420px;
-  padding: 0.8rem 1.5rem 2rem;
+  min-height: 100vh;
   display: none;
   flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* 播放主體區 */
+#play-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.5rem 1rem;
   gap: 0;
 }
 
 /* Status area */
 .status-area {
   text-align: center;
-  margin-bottom: 1.8rem;
-  min-height: 160px;
+  margin-bottom: 1.4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -90,23 +104,21 @@ body {
 /* ── 頂部答案卡 ── */
 #answer-card {
   width: 100%;
-  margin-bottom: 0;
-  cursor: pointer;
+  flex-shrink: 0;
 }
 #answer-hidden {
   width: 100%;
   background: #1c1c1c;
-  border: 1px solid #333;
-  border-radius: 14px;
-  padding: 1.2rem 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 1.4rem 1.5rem 1.2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
-  transition: border-color 0.2s, background 0.2s;
+  transition: background 0.2s;
   cursor: pointer;
 }
-#answer-hidden:hover { border-color: #555; background: #202020; }
+#answer-hidden:hover { background: #202020; }
 #answer-placeholder {
   font-size: 28px;
   font-weight: 700;
@@ -121,13 +133,12 @@ body {
   display: none;
   width: 100%;
   background: rgba(29,185,84,0.08);
-  border: 1px solid rgba(29,185,84,0.25);
-  border-radius: 14px;
-  padding: 1.2rem 1rem;
+  border-bottom: 1px solid rgba(29,185,84,0.2);
+  padding: 1.4rem 1.5rem 1.2rem;
   text-align: center;
   animation: fadeIn 0.4s ease;
 }
-@keyframes fadeIn { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
 #answer-song-name {
   font-size: 22px;
   font-weight: 700;
@@ -140,40 +151,30 @@ body {
   color: #1a8a40;
 }
 
-/* 答案卡與播放區的區隔 */
-#answer-divider {
-  width: 100%;
-  height: 1px;
-  background: #1e1e1e;
-  margin: 1.2rem 0 0.4rem;
-}
+/* 答案卡下方區隔 — 不需要了，改用 border-bottom */
+#answer-divider { display: none; }
 
 #timer-wrap {
   display: none;
   width: 100%;
+  max-width: 360px;
   margin-bottom: 1.2rem;
 }
 #timer-wrap.show { display: block; }
-#timer-bar-bg {
+
+#settings-panel {
   width: 100%;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
-#timer-bar {
-  height: 100%;
-  background: var(--green);
-  width: 100%;
-  transform-origin: left;
-  transition: none;
-}
-#timer-label {
-  font-size: 12px;
-  color: var(--muted);
-  text-align: right;
-  margin-top: 6px;
-}
+#settings-panel.open { display: flex; }
 
 /* Pause/Resume button */
 #playpause-btn {
@@ -208,6 +209,7 @@ body {
   cursor: pointer;
   margin-bottom: 0.8rem;
   width: 100%;
+  max-width: 360px;
   justify-content: center;
   transition: border-color 0.2s, color 0.2s;
 }
@@ -219,18 +221,26 @@ body {
 }
 .settings-toggle.open .arrow { transform: rotate(180deg); }
 
-#settings-panel {
+#timer-bar-bg {
   width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.2rem;
-  display: none;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
 }
-#settings-panel.open { display: flex; }
+#timer-bar {
+  height: 100%;
+  background: var(--green);
+  width: 100%;
+  transform-origin: left;
+  transition: none;
+}
+#timer-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 6px;
+}
 
 .setting-row {
   display: flex;
@@ -294,13 +304,23 @@ body {
 
 .setting-unit { font-size: 12px; color: var(--muted); margin-left: 4px; }
 
+/* ── FOOTER ── */
+#player-footer {
+  flex-shrink: 0;
+  width: 100%;
+  border-top: 1px solid #161616;
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 /* ── BOTTOM ACTIONS ── */
 .bottom-actions {
   display: flex;
   gap: 0.5rem;
-  width: 100%;
-  justify-content: center;
-  margin-top: 0.5rem;
+  align-items: center;
 }
 .btn-sm {
   background: none;
@@ -388,77 +408,73 @@ body {
   <div id="answer-divider"></div>
 
   <!-- Status -->
-  <div class="status-area">
-    <div id="status-icon" class="pulse">📡</div>
-    <div id="status-text">靠近 NFC 卡開始播放</div>
-  </div>
-
-  <!-- Playing indicator -->
-  <div id="playing-indicator">
-    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    <div class="bar"></div><div class="bar"></div>
-  </div>
-
-  <!-- Mode badge -->
-  <div id="mode-badge"></div>
-
-  <!-- Timer bar -->
-  <div id="timer-wrap">
-    <div id="timer-bar-bg"><div id="timer-bar"></div></div>
-    <div id="timer-label"></div>
-  </div>
-
-  <!-- Settings toggle -->
-  <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
-    ⚙️ 播放設定 <i class="arrow">▾</i>
-  </button>
-
-  <!-- Settings panel -->
-  <div id="settings-panel">
-
-    <!-- Duration mode -->
-    <div class="setting-row">
-      <div class="setting-label">限時播放<small>關閉則完整播放</small></div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="setting-limit" onchange="saveSettings()">
-        <div class="toggle-track"></div>
-      </label>
+  <div id="play-body">
+    <div class="status-area">
+      <div id="status-icon" class="pulse">📡</div>
+      <div id="status-text">靠近 NFC 卡開始播放</div>
     </div>
 
-    <!-- Duration seconds -->
-    <div class="setting-row">
-      <div class="setting-label">播放時長<small>限時模式使用</small></div>
-      <div style="display:flex;align-items:center">
-        <input type="number" class="num-input" id="setting-duration" value="30" min="1" max="300" onchange="saveSettings()">
-        <span class="setting-unit">秒</span>
-      </div>
+    <!-- Playing indicator -->
+    <div id="playing-indicator">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div>
     </div>
 
-    <!-- Start offset -->
-    <div class="setting-row">
-      <div class="setting-label">開始位置<small>從第幾秒播起</small></div>
-      <div style="display:flex;align-items:center">
-        <input type="number" class="num-input" id="setting-start" value="0" min="0" max="600" onchange="saveSettings()">
-        <span class="setting-unit">秒</span>
-      </div>
+    <!-- Mode badge -->
+    <div id="mode-badge"></div>
+
+    <!-- Timer bar -->
+    <div id="timer-wrap">
+      <div id="timer-bar-bg"><div id="timer-bar"></div></div>
+      <div id="timer-label"></div>
     </div>
 
-  </div>
-
-  <!-- Playback toolbar -->
-  <div id="playback-toolbar" style="display:none; flex-direction:column; align-items:center; width:100%; gap:0.8rem; margin-bottom:0.5rem">
-    <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
-      <i id="playpause-icon" class="ti ti-player-pause"></i>
+    <!-- Settings toggle -->
+    <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
+      ⚙️ 播放設定 <i class="arrow">▾</i>
     </button>
+
+    <!-- Settings panel -->
+    <div id="settings-panel">
+      <div class="setting-row">
+        <div class="setting-label">限時播放<small>關閉則完整播放</small></div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="setting-limit" onchange="saveSettings()">
+          <div class="toggle-track"></div>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">播放時長<small>限時模式使用</small></div>
+        <div style="display:flex;align-items:center">
+          <input type="number" class="num-input" id="setting-duration" value="30" min="1" max="300" onchange="saveSettings()">
+          <span class="setting-unit">秒</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">開始位置<small>從第幾秒播起</small></div>
+        <div style="display:flex;align-items:center">
+          <input type="number" class="num-input" id="setting-start" value="0" min="0" max="600" onchange="saveSettings()">
+          <span class="setting-unit">秒</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="debug-box"></div>
   </div>
 
-  <!-- Bottom actions -->
-  <div class="bottom-actions">
-    <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
-    <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
+  <!-- Footer -->
+  <div id="player-footer">
+    <div class="bottom-actions">
+      <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
+      <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
+    </div>
+    <!-- Playback toolbar -->
+    <div id="playback-toolbar" style="display:none; align-items:center;">
+      <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
+        <i id="playpause-icon" class="ti ti-player-pause"></i>
+      </button>
+    </div>
   </div>
-
-  <div id="debug-box"></div>
 
 </div>
 
@@ -660,7 +676,6 @@ function showPlayPause(show) {
   const toolbar = document.getElementById('playback-toolbar');
   toolbar.style.display = show ? 'flex' : 'none';
 }
-
 function syncPlayPauseIcon() {
   const icon = document.getElementById('playpause-icon');
   icon.className = isPaused ? 'ti ti-player-play' : 'ti ti-player-pause';
