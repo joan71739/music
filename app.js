@@ -326,7 +326,7 @@ async function doDebug() {
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
-sync function addToPlayedPlaylist(trackUri) {
+async function addToPlayedPlaylist(trackUri) {
   const t = await getToken();
   if (!t) return;
   try {
@@ -341,11 +341,10 @@ sync function addToPlayedPlaylist(trackUri) {
   } catch(e) { console.error('加入清單失敗:', e); }
 }
 
-function showToast(status) {
+function showToast() {
   const toast = document.getElementById('played-toast');
-  toast.textContent = '加入清單狀態: ' + (status || 'OK');
   toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, 5000);
+  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
 }
 
 async function init() {
