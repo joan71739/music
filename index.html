@@ -137,6 +137,26 @@ body {
   margin-top: 6px;
 }
 
+/* Pause/Resume button */
+#playpause-btn {
+  display: none;
+  background: none;
+  border: 2px solid var(--green);
+  color: var(--green);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 22px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background 0.2s, transform 0.1s;
+  align-items: center;
+  justify-content: center;
+}
+#playpause-btn.show { display: flex; }
+#playpause-btn:hover { background: var(--green-dim); }
+#playpause-btn:active { transform: scale(0.93); }
+
 /* Reveal button */
 #reveal-btn {
   display: none;
@@ -359,6 +379,9 @@ body {
     <div id="timer-label"></div>
   </div>
 
+  <!-- Pause / Resume -->
+  <button id="playpause-btn" onclick="togglePlayPause()">⏸</button>
+
   <!-- Reveal -->
   <button id="reveal-btn" onclick="revealSong()">揭曉答案 👀</button>
 
@@ -421,6 +444,8 @@ let token = null;
 let currentTrackName  = '';
 let currentArtistName = '';
 let timerHandle = null;
+let isTimerDone = false;   // 時間到後鎖定
+let isPaused    = false;   // 目前是否手動暫停中
 
 /* ──────────────────────────────────────────
    SETTINGS  (persisted in localStorage)
@@ -594,8 +619,46 @@ function parsePlayParams() {
 }
 
 /* ──────────────────────────────────────────
-   TIMER BAR
+   PAUSE / RESUME
 ────────────────────────────────────────── */
+function showPlayPause(show) {
+  const btn = document.getElementById('playpause-btn');
+  if (show) btn.classList.add('show'); else btn.classList.remove('show');
+}
+
+function syncPlayPauseIcon() {
+  document.getElementById('playpause-btn').textContent = isPaused ? '▶' : '⏸';
+}
+
+async function togglePlayPause() {
+  if (isTimerDone) return;          // 時間到，鎖定不給操作
+  const t = await getToken();
+  if (!t) return;
+
+  if (isPaused) {
+    // 繼續播放
+    await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    isPaused = false;
+    setStatus('🎵', '播放中');
+    document.getElementById('playing-indicator').classList.add('show');
+    syncPlayPauseIcon();
+  } else {
+    // 暫停
+    await fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    isPaused = true;
+    setStatus('⏸️', '已暫停');
+    document.getElementById('playing-indicator').classList.remove('show');
+    syncPlayPauseIcon();
+  }
+}
+
+
 function startTimer(durationMs) {
   clearTimeout(timerHandle);
   const bar   = document.getElementById('timer-bar');
@@ -628,6 +691,8 @@ function startTimer(durationMs) {
   // Pause after duration
   timerHandle = setTimeout(async () => {
     clearInterval(tick);
+    isTimerDone = true;
+    showPlayPause(false);   // 時間到，隱藏按鈕
     const t = await getToken();
     if (t) {
       await fetch('https://api.spotify.com/v1/me/player/pause', {
@@ -642,6 +707,9 @@ function startTimer(durationMs) {
 
 function resetTimer() {
   clearTimeout(timerHandle);
+  isTimerDone = false;
+  isPaused    = false;
+  showPlayPause(false);
   const wrap = document.getElementById('timer-wrap');
   wrap.classList.remove('show');
   const bar = document.getElementById('timer-bar');
@@ -690,8 +758,11 @@ async function playTrack(uri, startMs, durationMs) {
 
   if (pr.status === 204 || pr.status === 200) {
     setStatus('🎵', '播放中');
+    isPaused = false;
     document.getElementById('playing-indicator').classList.add('show');
     document.getElementById('reveal-btn').style.display = 'inline-block';
+    showPlayPause(true);
+    syncPlayPauseIcon();
 
     // Mode badge
     if (durationMs) {
