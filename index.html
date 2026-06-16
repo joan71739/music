@@ -6,10 +6,22 @@
 <title>金曲擴充播放器</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --green: #1DB954;
+  --green-dim: rgba(29,185,84,0.15);
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #222;
+  --text: #fff;
+  --muted: #666;
+  --subtle: #aaa;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #0a0a0a;
-  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -17,119 +29,460 @@ body {
   justify-content: center;
   user-select: none;
 }
-#main { text-align: center; padding: 2rem; width: 100%; max-width: 400px; }
-#status-icon { font-size: 80px; margin-bottom: 1.5rem; }
-#status-text { font-size: 18px; color: #888; margin-bottom: 0.5rem; }
-#song-name { font-size: 26px; font-weight: 600; color: #fff; min-height: 40px; margin-bottom: 0.3rem; opacity: 0; transition: opacity 0.5s; }
-#artist-name { font-size: 16px; color: #aaa; min-height: 24px; margin-bottom: 2rem; opacity: 0; transition: opacity 0.5s; }
-#song-name.show, #artist-name.show { opacity: 1; }
-.btn { background: none; border: 1px solid #333; color: #666; padding: 0.6rem 1.5rem; border-radius: 50px; font-size: 14px; cursor: pointer; margin: 0.3rem; }
-.btn-green { background: #1DB954; color: #000; border: none; font-weight: 600; font-size: 16px; padding: 0.8rem 2rem; }
-#playing-indicator { display: none; align-items: center; justify-content: center; gap: 4px; margin-bottom: 1.5rem; }
+
+/* ── LOGIN ── */
+#login-view {
+  text-align: center;
+  padding: 2rem;
+}
+.login-icon { font-size: 64px; margin-bottom: 1.2rem; }
+.login-title { font-size: 24px; font-weight: 700; margin-bottom: 0.4rem; }
+.login-sub { font-size: 14px; color: var(--muted); margin-bottom: 2rem; }
+
+/* ── PLAYER ── */
+#player-view {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem 1.5rem 2rem;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Status area */
+.status-area {
+  text-align: center;
+  margin-bottom: 1.8rem;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#status-icon { font-size: 72px; margin-bottom: 0.8rem; }
+#status-text { font-size: 15px; color: var(--muted); }
+
+/* Playing indicator */
+#playing-indicator {
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  margin-bottom: 0.8rem;
+}
 #playing-indicator.show { display: flex; }
-.bar { width: 4px; background: #1DB954; border-radius: 2px; animation: bounce 1.2s ease-in-out infinite; }
-.bar:nth-child(1) { height: 12px; animation-delay: 0s; }
-.bar:nth-child(2) { height: 20px; animation-delay: 0.2s; }
+.bar {
+  width: 4px;
+  background: var(--green);
+  border-radius: 2px;
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.bar:nth-child(1) { height: 10px; animation-delay: 0s; }
+.bar:nth-child(2) { height: 22px; animation-delay: 0.2s; }
 .bar:nth-child(3) { height: 16px; animation-delay: 0.4s; }
-.bar:nth-child(4) { height: 24px; animation-delay: 0.1s; }
-.bar:nth-child(5) { height: 14px; animation-delay: 0.3s; }
-@keyframes bounce { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+.bar:nth-child(4) { height: 26px; animation-delay: 0.1s; }
+.bar:nth-child(5) { height: 12px; animation-delay: 0.3s; }
+@keyframes bounce { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+
+/* Song info */
+.song-info {
+  text-align: center;
+  min-height: 68px;
+  margin-bottom: 1.2rem;
+}
+#song-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.5s;
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+#artist-name {
+  font-size: 14px;
+  color: var(--subtle);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+#song-name.show, #artist-name.show { opacity: 1; }
+
+/* Timer bar */
+#timer-wrap {
+  display: none;
+  width: 100%;
+  margin-bottom: 1.2rem;
+}
+#timer-wrap.show { display: block; }
+#timer-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#timer-bar {
+  height: 100%;
+  background: var(--green);
+  width: 100%;
+  transform-origin: left;
+  transition: none;
+}
+#timer-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 6px;
+}
+
+/* Reveal button */
+#reveal-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--subtle);
+  padding: 0.55rem 1.4rem;
+  border-radius: 50px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 1.2rem;
+  transition: color 0.3s, border-color 0.3s;
+}
+#reveal-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── SETTINGS PANEL ── */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 0.8rem;
+  width: 100%;
+  justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+.settings-toggle:hover { border-color: #444; color: var(--subtle); }
+.settings-toggle .arrow {
+  display: inline-block;
+  transition: transform 0.25s;
+  font-style: normal;
+}
+.settings-toggle.open .arrow { transform: rotate(180deg); }
+
+#settings-panel {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+#settings-panel.open { display: flex; }
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.setting-label {
+  font-size: 13px;
+  color: var(--subtle);
+  white-space: nowrap;
+}
+.setting-label small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--green); }
+.toggle-switch input:checked + .toggle-track::before { transform: translateX(20px); }
+
+/* Number input */
+.num-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 14px;
+  width: 90px;
+  text-align: right;
+}
+.num-input:focus { outline: none; border-color: var(--green); }
+.num-input:disabled { opacity: 0.35; }
+
+.setting-unit { font-size: 12px; color: var(--muted); margin-left: 4px; }
+
+/* ── BOTTOM ACTIONS ── */
+.bottom-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.btn-sm {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-sm:hover { border-color: #444; color: var(--subtle); }
+
+/* Green CTA */
+.btn-green {
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 0.85rem 2.2rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+}
+.btn-green:hover { opacity: 0.9; }
+.btn-green:active { transform: scale(0.97); }
+
+/* Debug */
+#debug-box {
+  margin-top: 0.8rem;
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+  background: var(--surface);
+  padding: 0.8rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  width: 100%;
+  display: none;
+  border: 1px solid var(--border);
+}
+
+/* Pulse */
 .pulse { animation: pulse 2s infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-#debug-box { margin-top: 1rem; font-size: 11px; color: #666; word-break: break-all; text-align: left; background: #111; padding: 1rem; border-radius: 8px; white-space: pre-wrap; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+/* Mode badge */
+#mode-badge {
+  display: none;
+  font-size: 11px;
+  color: var(--green);
+  background: var(--green-dim);
+  border-radius: 50px;
+  padding: 3px 10px;
+  margin-bottom: 1rem;
+}
+#mode-badge.show { display: inline-block; }
 </style>
 </head>
 <body>
-<div id="main">
 
-  <div id="login-view">
-    <div style="font-size:60px; margin-bottom:1rem">🎵</div>
-    <div style="font-size:22px; font-weight:600; margin-bottom:0.5rem">金曲擴充播放器</div>
-    <div style="font-size:14px; color:#666; margin-bottom:1.5rem">請先登入 Spotify（需要 Premium）</div>
-    <button class="btn btn-green" onclick="login()">連結 Spotify</button>
-  </div>
+<!-- ── LOGIN ── -->
+<div id="login-view">
+  <div class="login-icon">🎵</div>
+  <div class="login-title">金曲擴充播放器</div>
+  <div class="login-sub">掃描 NFC 卡自動播放 Spotify 歌曲<br>需要 Spotify Premium 帳號</div>
+  <button class="btn-green" onclick="login()">連結 Spotify 帳號</button>
+</div>
 
-  <div id="player-view" style="display:none">
+<!-- ── PLAYER ── -->
+<div id="player-view">
+
+  <!-- Status -->
+  <div class="status-area">
     <div id="status-icon" class="pulse">📡</div>
     <div id="status-text">靠近 NFC 卡開始播放</div>
-    <div id="playing-indicator">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div>
-    </div>
+  </div>
+
+  <!-- Playing indicator -->
+  <div id="playing-indicator">
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div>
+  </div>
+
+  <!-- Mode badge -->
+  <div id="mode-badge"></div>
+
+  <!-- Song info -->
+  <div class="song-info">
     <div id="song-name"></div>
     <div id="artist-name"></div>
-    <button id="reveal-btn" class="btn" onclick="revealSong()" style="display:none">揭曉答案 👀</button>
-    <div style="margin-top:3rem">
-      <button class="btn" onclick="doLogout()">🚪 登出</button>
-      <button class="btn" onclick="doDebug()">🔍 測試連線</button>
-    </div>
-    <div id="debug-box" style="display:none"></div>
   </div>
+
+  <!-- Timer bar -->
+  <div id="timer-wrap">
+    <div id="timer-bar-bg"><div id="timer-bar"></div></div>
+    <div id="timer-label"></div>
+  </div>
+
+  <!-- Reveal -->
+  <button id="reveal-btn" onclick="revealSong()">揭曉答案 👀</button>
+
+  <!-- Settings toggle -->
+  <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
+    ⚙️ 播放設定 <i class="arrow">▾</i>
+  </button>
+
+  <!-- Settings panel -->
+  <div id="settings-panel">
+
+    <!-- Duration mode -->
+    <div class="setting-row">
+      <div class="setting-label">限時播放<small>關閉則完整播放</small></div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="setting-limit" onchange="saveSettings()">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
+    <!-- Duration seconds -->
+    <div class="setting-row">
+      <div class="setting-label">播放時長<small>限時模式使用</small></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" class="num-input" id="setting-duration" value="30" min="1" max="300" onchange="saveSettings()">
+        <span class="setting-unit">秒</span>
+      </div>
+    </div>
+
+    <!-- Start offset -->
+    <div class="setting-row">
+      <div class="setting-label">開始位置<small>從第幾秒播起</small></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" class="num-input" id="setting-start" value="0" min="0" max="600" onchange="saveSettings()">
+        <span class="setting-unit">秒</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom actions -->
+  <div class="bottom-actions">
+    <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
+    <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
+  </div>
+
+  <div id="debug-box"></div>
 
 </div>
 
 <script>
-const CLIENT_ID = 'de45db7ad49b41efb68dbaa362f65f8c';
+/* ──────────────────────────────────────────
+   CONFIG
+────────────────────────────────────────── */
+const CLIENT_ID   = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SCOPES       = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
 
 let token = null;
-let currentTrackName = '';
+let currentTrackName  = '';
 let currentArtistName = '';
+let timerHandle = null;
 
-function showView(name) {
-  document.getElementById('login-view').style.display = name === 'login' ? 'block' : 'none';
-  document.getElementById('player-view').style.display = name === 'player' ? 'block' : 'none';
+/* ──────────────────────────────────────────
+   SETTINGS  (persisted in localStorage)
+────────────────────────────────────────── */
+function loadSettings() {
+  const raw = localStorage.getItem('player_settings');
+  const defaults = { limitMode: false, durationSec: 30, startSec: 0 };
+  if (!raw) return defaults;
+  try { return { ...defaults, ...JSON.parse(raw) }; } catch(e) { return defaults; }
 }
 
-function setStatus(icon, text) {
-  document.getElementById('status-icon').textContent = icon;
-  document.getElementById('status-icon').className = '';
+function saveSettings() {
+  const s = {
+    limitMode:   document.getElementById('setting-limit').checked,
+    durationSec: parseInt(document.getElementById('setting-duration').value) || 30,
+    startSec:    parseInt(document.getElementById('setting-start').value) || 0,
+  };
+  localStorage.setItem('player_settings', JSON.stringify(s));
+  updateDurationInputState(s.limitMode);
+}
+
+function applySettingsToUI(s) {
+  document.getElementById('setting-limit').checked     = s.limitMode;
+  document.getElementById('setting-duration').value    = s.durationSec;
+  document.getElementById('setting-start').value       = s.startSec;
+  updateDurationInputState(s.limitMode);
+}
+
+function updateDurationInputState(limitMode) {
+  document.getElementById('setting-duration').disabled = !limitMode;
+}
+
+/* ──────────────────────────────────────────
+   SETTINGS PANEL TOGGLE
+────────────────────────────────────────── */
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  const btn   = document.getElementById('settings-toggle-btn');
+  const open  = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* ──────────────────────────────────────────
+   VIEWS
+────────────────────────────────────────── */
+function showView(name) {
+  document.getElementById('login-view').style.display  = name === 'login'  ? 'block' : 'none';
+  document.getElementById('player-view').style.display = name === 'player' ? 'flex'  : 'none';
+}
+
+function setStatus(icon, text, pulse = false) {
+  const el = document.getElementById('status-icon');
+  el.textContent = icon;
+  el.className = pulse ? 'pulse' : '';
   document.getElementById('status-text').textContent = text;
 }
 
-function doLogout() {
-  localStorage.clear();
-  sessionStorage.clear();
-  token = null;
-  showView('login');
-}
-
-async function doDebug() {
-  const box = document.getElementById('debug-box');
-  box.style.display = 'block';
-  box.textContent = '測試中...\n';
-
-  const t = localStorage.getItem('spotify_token');
-  const exp = localStorage.getItem('spotify_expires');
-  box.textContent += 'Token: ' + (t ? t.substring(0,15) + '...' : '無') + '\n';
-  box.textContent += 'Token有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
-  box.textContent += 'accessToken變數: ' + (token ? '有' : '無') + '\n\n';
-
-  if (!t) { box.textContent += '沒有Token，請重新登入'; return; }
-
-  try {
-    const r = await fetch('https://api.spotify.com/v1/me/player/devices', {
-      headers: { Authorization: 'Bearer ' + t }
-    });
-    box.textContent += 'API狀態: ' + r.status + '\n';
-    const d = await r.json();
-    box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
-    if (d.devices && d.devices.length > 0) {
-      d.devices.forEach(dev => {
-        box.textContent += '- ' + dev.name + ' (' + dev.type + ') 活躍:' + dev.is_active + '\n';
-      });
-    } else {
-      box.textContent += '沒有找到裝置\n';
-      box.textContent += JSON.stringify(d) + '\n';
-    }
-  } catch(e) {
-    box.textContent += '錯誤: ' + e.message;
-  }
-}
-
+/* ──────────────────────────────────────────
+   AUTH
+────────────────────────────────────────── */
 function login() {
-  const state = rand(16);
+  const state    = rand(16);
   const verifier = rand(64);
   sessionStorage.setItem('cv', verifier);
   sessionStorage.setItem('st', state);
@@ -143,6 +496,14 @@ function login() {
   });
 }
 
+function doLogout() {
+  localStorage.removeItem('spotify_token');
+  localStorage.removeItem('spotify_refresh');
+  localStorage.removeItem('spotify_expires');
+  token = null;
+  showView('login');
+}
+
 function rand(n) {
   const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let r = '';
@@ -152,12 +513,13 @@ function rand(n) {
 
 async function challenge(v) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
-  return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return btoa(String.fromCharCode(...new Uint8Array(d)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
 
 async function handleCallback() {
-  const p = new URLSearchParams(window.location.search);
-  const code = p.get('code');
+  const p     = new URLSearchParams(window.location.search);
+  const code  = p.get('code');
   const state = p.get('state');
   if (!code || state !== sessionStorage.getItem('st')) return false;
 
@@ -175,7 +537,7 @@ async function handleCallback() {
   const d = await r.json();
   if (d.access_token) {
     token = d.access_token;
-    localStorage.setItem('spotify_token', token);
+    localStorage.setItem('spotify_token',   token);
     localStorage.setItem('spotify_refresh', d.refresh_token);
     localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
     return true;
@@ -194,7 +556,7 @@ async function refreshToken() {
   const d = await r.json();
   if (d.access_token) {
     token = d.access_token;
-    localStorage.setItem('spotify_token', token);
+    localStorage.setItem('spotify_token',   token);
     localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
     return true;
   }
@@ -203,18 +565,99 @@ async function refreshToken() {
 
 async function getToken() {
   if (token) return token;
-  const t = localStorage.getItem('spotify_token');
+  const t   = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
-  if (t && exp && Date.now() < parseInt(exp) - 60000) {
-    token = t;
-    return token;
-  }
+  if (t && exp && Date.now() < parseInt(exp) - 60000) { token = t; return token; }
   const ok = await refreshToken();
   return ok ? token : null;
 }
 
-async function playTrack(uri) {
+/* ──────────────────────────────────────────
+   NFC / URL PARAMETER PARSING
+────────────────────────────────────────── */
+function parsePlayParams() {
+  const p         = new URLSearchParams(window.location.search);
+  const uri       = p.get('uri');
+  if (!uri) return null;
+
+  const s        = loadSettings();
+
+  // Per-card overrides
+  const startMs    = p.has('start_ms')    ? parseInt(p.get('start_ms'))    : null;
+  const durationMs = p.has('duration_ms') ? parseInt(p.get('duration_ms')) : null;
+
+  // Resolve final values
+  const resolvedStartMs    = startMs    !== null ? startMs    : (s.startSec * 1000);
+  const resolvedDurationMs = durationMs !== null ? durationMs : (s.limitMode ? s.durationSec * 1000 : null);
+
+  return { uri, startMs: resolvedStartMs, durationMs: resolvedDurationMs };
+}
+
+/* ──────────────────────────────────────────
+   TIMER BAR
+────────────────────────────────────────── */
+function startTimer(durationMs) {
+  clearTimeout(timerHandle);
+  const bar   = document.getElementById('timer-bar');
+  const label = document.getElementById('timer-label');
+  const wrap  = document.getElementById('timer-wrap');
+
+  wrap.classList.add('show');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+
+  const totalSec = Math.round(durationMs / 1000);
+  label.textContent = totalSec + ' 秒';
+
+  // Start shrink
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${durationMs}ms linear`;
+      bar.style.width = '0%';
+    });
+  });
+
+  // Countdown label
+  let remaining = totalSec;
+  const tick = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) { clearInterval(tick); label.textContent = '時間到！'; }
+    else label.textContent = remaining + ' 秒';
+  }, 1000);
+
+  // Pause after duration
+  timerHandle = setTimeout(async () => {
+    clearInterval(tick);
+    const t = await getToken();
+    if (t) {
+      await fetch('https://api.spotify.com/v1/me/player/pause', {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + t }
+      });
+    }
+    setStatus('⏸️', '試聽結束，等待揭曉');
+    document.getElementById('playing-indicator').classList.remove('show');
+  }, durationMs);
+}
+
+function resetTimer() {
+  clearTimeout(timerHandle);
+  const wrap = document.getElementById('timer-wrap');
+  wrap.classList.remove('show');
+  const bar = document.getElementById('timer-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+}
+
+/* ──────────────────────────────────────────
+   PLAYBACK
+────────────────────────────────────────── */
+async function playTrack(uri, startMs, durationMs) {
+  resetTimer();
   setStatus('⏳', '連線中...');
+  document.getElementById('playing-indicator').classList.remove('show');
+  document.getElementById('mode-badge').classList.remove('show');
+
   const t = await getToken();
   if (!t) { setStatus('⚠️', '請重新登入'); showView('login'); return; }
 
@@ -222,34 +665,45 @@ async function playTrack(uri) {
   const dr = await fetch('https://api.spotify.com/v1/me/player/devices', {
     headers: { Authorization: 'Bearer ' + t }
   });
-
   if (dr.status === 401) { setStatus('⚠️', '登入過期，請重新登入'); doLogout(); return; }
 
-  const dd = await dr.json();
+  const dd      = await dr.json();
   const devices = dd.devices || [];
-
   if (devices.length === 0) {
-    setStatus('⚠️', '找不到裝置！請先開 Spotify app 播放一首歌');
+    setStatus('⚠️', '找不到裝置！請先開啟 Spotify app');
     return;
   }
 
   const dev = devices.find(d => d.is_active) || devices[0];
   setStatus('⏳', '切換歌曲...');
 
+  const body = { uris: [uri] };
+  if (startMs && startMs > 0) body.position_ms = startMs;
+
   const pr = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + dev.id, {
     method: 'PUT',
     headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uris: [uri] })
+    body: JSON.stringify(body)
   });
 
   if (pr.status === 403) { setStatus('⚠️', '需要 Spotify Premium'); return; }
+
   if (pr.status === 204 || pr.status === 200) {
-    setStatus('🎵', '播放中...');
+    setStatus('🎵', '播放中');
     document.getElementById('playing-indicator').classList.add('show');
     document.getElementById('reveal-btn').style.display = 'inline-block';
+
+    // Mode badge
+    if (durationMs) {
+      const badge = document.getElementById('mode-badge');
+      badge.textContent = `限時 ${Math.round(durationMs/1000)} 秒`;
+      badge.classList.add('show');
+      setTimeout(() => startTimer(durationMs), 500);
+    }
+
     setTimeout(getTrackInfo, 1000);
   } else {
-    setStatus('⚠️', '播放失敗 狀態碼:' + pr.status);
+    setStatus('⚠️', '播放失敗（狀態碼 ' + pr.status + '）');
   }
 }
 
@@ -262,9 +716,9 @@ async function getTrackInfo() {
   if (r.status === 200) {
     const d = await r.json();
     if (d && d.item) {
-      currentTrackName = d.item.name;
+      currentTrackName  = d.item.name;
       currentArtistName = d.item.artists.map(a => a.name).join(', ');
-      document.getElementById('song-name').textContent = currentTrackName;
+      document.getElementById('song-name').textContent  = currentTrackName;
       document.getElementById('artist-name').textContent = currentArtistName;
     }
   }
@@ -273,31 +727,96 @@ async function getTrackInfo() {
 function revealSong() {
   document.getElementById('song-name').classList.add('show');
   document.getElementById('artist-name').classList.add('show');
-  document.getElementById('reveal-btn').textContent = '✅ ' + currentTrackName;
-  document.getElementById('reveal-btn').style.color = '#1DB954';
-  document.getElementById('reveal-btn').style.borderColor = '#1DB954';
+  const btn = document.getElementById('reveal-btn');
+  btn.textContent     = '✅ ' + (currentTrackName || '（歌曲名稱）');
+  btn.style.color     = 'var(--green)';
+  btn.style.borderColor = 'var(--green)';
 }
 
+/* ──────────────────────────────────────────
+   CHECK NFC TRIGGER
+────────────────────────────────────────── */
 function checkNFC() {
-  const p = new URLSearchParams(window.location.search);
-  const uri = p.get('uri');
-  if (uri && token) {
-    window.history.replaceState({}, '', window.location.pathname);
-    document.getElementById('song-name').classList.remove('show');
-    document.getElementById('artist-name').classList.remove('show');
-    document.getElementById('reveal-btn').style.display = 'none';
-    document.getElementById('playing-indicator').classList.remove('show');
-    document.getElementById('debug-box').style.display = 'none';
-    setTimeout(() => playTrack(uri), 300);
+  const params = parsePlayParams();
+  if (!params || !token) return;
+
+  window.history.replaceState({}, '', window.location.pathname);
+
+  // Reset UI
+  document.getElementById('song-name').classList.remove('show');
+  document.getElementById('artist-name').classList.remove('show');
+  const revealBtn = document.getElementById('reveal-btn');
+  revealBtn.style.display = 'none';
+  revealBtn.textContent = '揭曉答案 👀';
+  revealBtn.style.color = '';
+  revealBtn.style.borderColor = '';
+  currentTrackName = '';
+  currentArtistName = '';
+
+  setTimeout(() => playTrack(params.uri, params.startMs, params.durationMs), 300);
+}
+
+/* ──────────────────────────────────────────
+   DEBUG
+────────────────────────────────────────── */
+async function doDebug() {
+  const box = document.getElementById('debug-box');
+  box.style.display = 'block';
+  box.textContent   = '測試中...\n';
+
+  const t   = localStorage.getItem('spotify_token');
+  const exp = localStorage.getItem('spotify_expires');
+  box.textContent += 'Token: '    + (t   ? t.substring(0,15) + '...' : '無') + '\n';
+  box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
+  box.textContent += 'accessToken 變數: ' + (token ? '有' : '無') + '\n\n';
+
+  const s = loadSettings();
+  box.textContent += '限時模式: ' + s.limitMode + '\n';
+  box.textContent += '播放秒數: ' + s.durationSec + '\n';
+  box.textContent += '開始位置: ' + s.startSec + '秒\n\n';
+
+  if (!t) { box.textContent += '沒有 Token，請重新登入'; return; }
+
+  try {
+    const r = await fetch('https://api.spotify.com/v1/me/player/devices', {
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    box.textContent += 'API 狀態: ' + r.status + '\n';
+    const d = await r.json();
+    box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
+    (d.devices || []).forEach(dev => {
+      box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`;
+    });
+    if (!d.devices || d.devices.length === 0) {
+      box.textContent += JSON.stringify(d) + '\n';
+    }
+  } catch(e) {
+    box.textContent += '錯誤: ' + e.message;
   }
 }
 
+/* ──────────────────────────────────────────
+   INIT
+────────────────────────────────────────── */
 async function init() {
-  const ok = await handleCallback();
-  if (ok) { showView('player'); checkNFC(); return; }
+  // Apply saved settings
+  applySettingsToUI(loadSettings());
 
+  // Handle OAuth callback
+  const ok = await handleCallback();
+  if (ok) {
+    showView('player');
+    checkNFC();
+    return;
+  }
+
+  // Restore existing token
   const t = await getToken();
-  if (t) { showView('player'); checkNFC(); return; }
+  if (t) {
+    showView('player');
+    checkNFC();
+    return;
+  }
 
   showView('login');
 }
