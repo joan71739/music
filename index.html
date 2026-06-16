@@ -79,7 +79,7 @@ body {
 
 /* 圓圈狀態圖示 */
 #status-ring {
-  width: 88px; height: 88px; border-radius: 50%;
+  width: 140px; height: 140px; border-radius: 50%;
   border: 1.5px solid #252525;
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.4s;
@@ -95,7 +95,7 @@ body {
 }
 
 /* 待機 / 結束時的 icon */
-#status-ring-icon { font-size: 46px; color: #2e2e2e; transition: color 0.4s; }
+#status-ring-icon { font-size: 68px; color: #2e2e2e; transition: color 0.4s; }
 #status-ring.playing #status-ring-icon { color: #1DB954; }
 #status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
 
@@ -329,15 +329,16 @@ body {
   background: none;
   border: 1px solid var(--border);
   color: var(--muted);
-  width: 42px; height: 42px;
+  padding: 0.5rem 0.9rem;
   border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; gap: 7px;
   cursor: pointer;
+  font-size: 13px;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.btn-sm i { font-size: 18px; }
+.btn-sm i { font-size: 17px; }
 .btn-sm:hover { border-color: #444; color: var(--subtle); background: #141414; }
-.btn-sm:active { transform: scale(0.94); }
+.btn-sm:active { transform: scale(0.96); }
 
 /* Green CTA */
 .btn-green {
@@ -478,10 +479,10 @@ body {
   <!-- Footer -->
   <div id="player-footer">
     <button class="btn-sm" onclick="doLogout()" aria-label="登出">
-      <i class="ti ti-logout" aria-hidden="true"></i>
+      <i class="ti ti-logout" aria-hidden="true"></i>登出
     </button>
     <button class="btn-sm" onclick="doDebug()" aria-label="測試連線">
-      <i class="ti ti-plug-connected" aria-hidden="true"></i>
+      <i class="ti ti-plug-connected" aria-hidden="true"></i>測試連線
     </button>
   </div>
 
