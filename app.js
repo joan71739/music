@@ -337,8 +337,12 @@ function addToPlayedPlaylist(trackUri) {
 
 function showToast() {
   const toast = document.getElementById('played-toast');
+  toast.style.visibility = 'visible';
   toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  setTimeout(() => { 
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.visibility = 'hidden'; }, 300);
+  }, 3000);
 }
 
 async function init() {
