@@ -112,57 +112,68 @@ body {
 #answer-card {
   width: 100%;
   flex-shrink: 0;
+  position: relative;
+  height: 160px;
+  overflow: hidden;
 }
-#answer-hidden {
+#answer-hidden,
+#answer-revealed {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  min-height: 110px;
-  background: #1c1c1c;
-  border-bottom: 1px solid #2a2a2a;
-  padding: 1.8rem 1.5rem 1.6rem;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background 0.2s;
+  text-align: center;
   cursor: pointer;
+  transition: opacity 0.3s;
 }
-#answer-hidden:hover { background: #202020; }
+#answer-hidden {
+  background: #1e1e1e;
+  border-bottom: 1px solid #2a2a2a;
+  opacity: 1;
+  pointer-events: auto;
+}
+#answer-hidden:hover { background: #222; }
+#answer-revealed {
+  background: rgba(29,185,84,0.09);
+  border-bottom: 1px solid rgba(29,185,84,0.2);
+  opacity: 0;
+  pointer-events: none;
+}
+#answer-revealed.show {
+  opacity: 1;
+  pointer-events: auto;
+  animation: fadeIn 0.35s ease;
+}
+#answer-hidden.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 #answer-placeholder {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
-  color: #444;
-  letter-spacing: 6px;
+  color: #484848;
+  letter-spacing: 8px;
 }
 #answer-tap-hint {
   font-size: 14px;
   color: #555;
 }
-#answer-revealed {
-  width: 100%;
-  min-height: 110px;
-  background: rgba(29,185,84,0.08);
-  border-bottom: 1px solid rgba(29,185,84,0.2);
-  padding: 1.8rem 1.5rem 1.6rem;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
 #answer-song-name {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--green);
-  margin-bottom: 0.35rem;
   line-height: 1.3;
+  padding: 0 1rem;
 }
 #answer-artist-name {
   font-size: 15px;
-  color: #1a8a40;
+  color: #1a9645;
 }
 
 /* 答案卡下方區隔 — 不需要了，改用 border-bottom */
@@ -920,14 +931,16 @@ let isRevealed = false;
 
 function toggleReveal() {
   isRevealed = !isRevealed;
+  const hidden   = document.getElementById('answer-hidden');
+  const revealed = document.getElementById('answer-revealed');
   if (isRevealed) {
-    document.getElementById('answer-hidden').style.display   = 'none';
-    document.getElementById('answer-revealed').style.display = 'flex';
     document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
     document.getElementById('answer-artist-name').textContent = currentArtistName || '';
+    hidden.classList.add('hide');
+    revealed.classList.add('show');
   } else {
-    document.getElementById('answer-hidden').style.display   = 'flex';
-    document.getElementById('answer-revealed').style.display = 'none';
+    hidden.classList.remove('hide');
+    revealed.classList.remove('show');
   }
 }
 
@@ -944,8 +957,8 @@ function checkNFC() {
 
   // Reset answer card
   isRevealed = false;
-  document.getElementById('answer-hidden').style.display   = 'flex';
-  document.getElementById('answer-revealed').style.display = 'none';
+  document.getElementById('answer-hidden').classList.remove('hide');
+  document.getElementById('answer-revealed').classList.remove('show');
   document.getElementById('answer-song-name').textContent  = '';
   document.getElementById('answer-artist-name').textContent = '';
   currentTrackName  = '';
