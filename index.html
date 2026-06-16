@@ -505,13 +505,28 @@ async function playTrack(uri, startMs, durationMs) {
   if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
   if (pr.status === 204 || pr.status === 200) {
     setStatus('playing', '播放中'); isPaused = false; showPlayPause(true);
+    
+    // 關鍵修正：動態組合 startMs 與 durationMs 的顯示文字
+    const badgeParts = [];
+    if (startMs && startMs > 0) {
+      badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
+    }
     if (durationMs) {
-      const badge = document.getElementById('mode-badge');
-      badge.textContent = `限時 ${Math.round(durationMs/1000)} 秒`; badge.classList.add('show');
+      badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
+      // 只有在有限時的情況下才啟動計時器
       setTimeout(() => startTimer(durationMs), 500);
     }
+
+    // 如果有任何設定，就顯示標籤
+    const badge = document.getElementById('mode-badge');
+    if (badgeParts.length > 0) {
+      badge.textContent = badgeParts.join(' · ');
+      badge.classList.add('show');
+    } else {
+      badge.classList.remove('show');
+    }
+    
     setTimeout(getTrackInfo, 1000);
-  } else { setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）'); }
 }
 
 async function getTrackInfo() {
