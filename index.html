@@ -44,7 +44,7 @@ body {
 #player-view {
   width: 100%;
   max-width: 420px;
-  padding: 1.5rem 1.5rem 2rem;
+  padding: 0.8rem 1.5rem 2rem;
   display: none;
   flex-direction: column;
   align-items: center;
@@ -90,32 +90,32 @@ body {
 /* ── 頂部答案卡 ── */
 #answer-card {
   width: 100%;
-  margin-bottom: 1.4rem;
+  margin-bottom: 0;
   cursor: pointer;
 }
 #answer-hidden {
   width: 100%;
-  background: var(--surface);
-  border: 1px dashed #2a2a2a;
+  background: #1c1c1c;
+  border: 1px solid #333;
   border-radius: 14px;
-  padding: 1.1rem 1rem;
+  padding: 1.2rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   transition: border-color 0.2s, background 0.2s;
   cursor: pointer;
 }
-#answer-hidden:hover { border-color: #444; background: #181818; }
+#answer-hidden:hover { border-color: #555; background: #202020; }
 #answer-placeholder {
   font-size: 28px;
   font-weight: 700;
-  color: #2a2a2a;
+  color: #444;
   letter-spacing: 6px;
 }
 #answer-tap-hint {
   font-size: 12px;
-  color: #3a3a3a;
+  color: #555;
 }
 #answer-revealed {
   display: none;
@@ -123,7 +123,7 @@ body {
   background: rgba(29,185,84,0.08);
   border: 1px solid rgba(29,185,84,0.25);
   border-radius: 14px;
-  padding: 1.1rem 1rem;
+  padding: 1.2rem 1rem;
   text-align: center;
   animation: fadeIn 0.4s ease;
 }
@@ -140,6 +140,13 @@ body {
   color: #1a8a40;
 }
 
+/* 答案卡與播放區的區隔 */
+#answer-divider {
+  width: 100%;
+  height: 1px;
+  background: #1e1e1e;
+  margin: 1.2rem 0 0.4rem;
+}
 
 #timer-wrap {
   display: none;
@@ -378,6 +385,7 @@ body {
       <div id="answer-artist-name"></div>
     </div>
   </div>
+  <div id="answer-divider"></div>
 
   <!-- Status -->
   <div class="status-area">
@@ -437,9 +445,8 @@ body {
 
   </div>
 
-  <!-- Playback toolbar (divider + pause/resume) -->
+  <!-- Playback toolbar -->
   <div id="playback-toolbar" style="display:none; flex-direction:column; align-items:center; width:100%; gap:0.8rem; margin-bottom:0.5rem">
-    <div style="width:100%; height:1px; background:var(--border);"></div>
     <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
       <i id="playpause-icon" class="ti ti-player-pause"></i>
     </button>
