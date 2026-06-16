@@ -323,6 +323,17 @@ async function doDebug() {
     box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
     (d.devices || []).forEach(dev => { box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`; });
     if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';
+
+    // 測試加入清單
+    const testR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/tracks`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'] })
+    });
+    const testBody = await testR.json();
+    box.textContent += '\n加入清單測試: ' + testR.status + '\n';
+    box.textContent += JSON.stringify(testBody) + '\n';
+    
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
