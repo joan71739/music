@@ -43,7 +43,8 @@ body {
 #status-ring {
   width: 320px; height: 320px; border-radius: 50%;
   border: 1.5px solid #252525;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
   transition: border-color 0.4s; cursor: default; flex-shrink: 0;
 }
 #status-ring.clickable { cursor: pointer; }
@@ -54,6 +55,23 @@ body {
 #status-ring-icon { font-size: 156px; color: #2e2e2e; transition: color 0.4s; }
 #status-ring.playing #status-ring-icon { color: #1DB954; }
 #status-ring.ended #status-ring-icon { color: rgba(29,185,84,0.35); }
+
+/* 膠囊提示 */
+#ring-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(0,0,0,0.35); border: 1px solid #1e1e1e;
+  border-radius: 20px; padding: 4px 12px;
+}
+#status-ring.playing #ring-pill { border-color: rgba(29,185,84,0.2); }
+#ring-pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+#status-ring.playing  #ring-pill-dot { background: #1DB954; animation: dpulse 1.4s infinite; }
+#status-ring.ended    #ring-pill-dot { background: #333; }
+@keyframes dpulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+#ring-pill-state  { font-size: 11px; color: #555; }
+#ring-pill-action { font-size: 11px; font-weight: 600; }
+#status-ring.playing  #ring-pill-action { color: rgba(29,185,84,0.7); }
+#status-ring.ended    #ring-pill-action { color: rgba(29,185,84,0.4); }
+
 .ring-bar { display: none !important; }
 #playing-indicator { display: none !important; }
 #answer-card { width: 100%; flex-shrink: 0; position: relative; height: 160px; overflow: hidden; }
@@ -172,8 +190,11 @@ body {
     <div class="status-area">
       <div id="status-ring" onclick="ringTogglePlayPause()">
         <i id="status-ring-icon" class="ti ti-radio" aria-hidden="true"></i>
-        <div class="ring-bar"></div><div class="ring-bar"></div><div class="ring-bar"></div>
-        <div class="ring-bar"></div><div class="ring-bar"></div>
+        <div id="ring-pill" style="display:none">
+          <div id="ring-pill-dot"></div>
+          <span id="ring-pill-state"></span>
+          <span id="ring-pill-action"></span>
+        </div>
       </div>
       <div id="status-text">靠近 NFC 卡開始播放</div>
     </div>
@@ -294,12 +315,33 @@ function showView(name) {
 }
 
 function setStatus(state, text) {
-  const ring = document.getElementById('status-ring');
-  const icon = document.getElementById('status-ring-icon');
+  const ring   = document.getElementById('status-ring');
+  const icon   = document.getElementById('status-ring-icon');
+  const pill   = document.getElementById('ring-pill');
+  const pState = document.getElementById('ring-pill-state');
+  const pAction= document.getElementById('ring-pill-action');
   ring.classList.remove('playing', 'ended');
-  if (state === 'playing') { ring.classList.add('playing'); icon.className = 'ti ti-music'; }
-  else if (state === 'ended' || state === 'paused') { ring.classList.add('ended'); icon.className = 'ti ti-player-pause'; }
-  else { icon.className = 'ti ti-radio'; }
+
+  if (state === 'playing') {
+    ring.classList.add('playing');
+    icon.className = 'ti ti-music';
+    pill.style.display = 'flex';
+    pState.textContent  = '播放中 · ';
+    pAction.textContent = '點我暫停';
+  } else if (state === 'paused') {
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+    pill.style.display = 'flex';
+    pState.textContent  = '已暫停 · ';
+    pAction.textContent = '點我繼續';
+  } else if (state === 'ended') {
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+    pill.style.display = 'none';
+  } else {
+    icon.className = 'ti ti-radio';
+    pill.style.display = 'none';
+  }
   document.getElementById('status-text').textContent = text;
 }
 
@@ -390,10 +432,10 @@ async function togglePlayPause() {
   const t = await getToken(); if (!t) return;
   if (isPaused) {
     await fetch('https://api.spotify.com/v1/me/player/play', { method: 'PUT', headers: { Authorization: 'Bearer ' + t } });
-    isPaused = false; setStatus('playing', '播放中 — 點圓圈暫停'); resumeTimer();
+    isPaused = false; setStatus('playing', '播放中'); resumeTimer();
   } else {
     await fetch('https://api.spotify.com/v1/me/player/pause', { method: 'PUT', headers: { Authorization: 'Bearer ' + t } });
-    isPaused = true; setStatus('paused', '已暫停 — 點圓圈繼續'); pauseTimer();
+    isPaused = true; setStatus('paused', '已暫停'); pauseTimer();
   }
 }
 
@@ -454,7 +496,7 @@ async function playTrack(uri, startMs, durationMs) {
   });
   if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
   if (pr.status === 204 || pr.status === 200) {
-    setStatus('playing', '播放中 — 點圓圈暫停'); isPaused = false; showPlayPause(true);
+    setStatus('playing', '播放中'); isPaused = false; showPlayPause(true);
     if (durationMs) {
       const badge = document.getElementById('mode-badge');
       badge.textContent = `限時 ${Math.round(durationMs/1000)} 秒`; badge.classList.add('show');
