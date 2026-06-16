@@ -442,9 +442,17 @@ async function togglePlayPause() {
 function pauseTimer() {
   if (!timerStartedAt) return;
   timerRemainingMs = Math.max(0, timerRemainingMs - (Date.now() - timerStartedAt));
-  timerStartedAt = 0; clearTimeout(timerHandle); clearInterval(tickHandle);
+  timerStartedAt = 0; 
+  clearTimeout(timerHandle); 
+  clearInterval(tickHandle);
+  
   const bar = document.getElementById('timer-bar');
-  bar.style.transition = 'none'; bar.style.width = getComputedStyle(bar).width;
+  
+  // 關鍵修正：先取得當下的實際寬度，再把動畫關掉
+  const currentWidth = window.getComputedStyle(bar).width;
+  bar.style.transition = 'none'; 
+  bar.style.width = currentWidth;
+  
   document.getElementById('timer-label').textContent = Math.ceil(timerRemainingMs / 1000) + ' 秒（暫停）';
 }
 
