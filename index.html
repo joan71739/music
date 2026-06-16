@@ -459,6 +459,13 @@ body {
       </div>
     </div>
 
+    <!-- Playback toolbar -->
+    <div id="playback-toolbar" style="display:none; align-items:center; justify-content:center; width:100%; max-width:360px; margin-bottom:0.8rem;">
+      <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
+        <i id="playpause-icon" class="ti ti-player-pause"></i>
+      </button>
+    </div>
+
     <div id="debug-box"></div>
   </div>
 
@@ -467,12 +474,6 @@ body {
     <div class="bottom-actions">
       <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
       <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
-    </div>
-    <!-- Playback toolbar -->
-    <div id="playback-toolbar" style="display:none; align-items:center;">
-      <button id="playpause-btn" onclick="togglePlayPause()" aria-label="暫停／繼續">
-        <i id="playpause-icon" class="ti ti-player-pause"></i>
-      </button>
     </div>
   </div>
 
