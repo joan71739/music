@@ -91,7 +91,7 @@ function login() {
   const state = rand(16), verifier = rand(64);
   sessionStorage.setItem('cv', verifier); sessionStorage.setItem('st', state);
   challenge(verifier).then(ch => {
-    const p = new URLSearchParams({ response_type: 'code', client_id: CLIENT_ID, scope: SCOPES, redirect_uri: REDIRECT_URI, state, code_challenge_method: 'S256', code_challenge: ch });
+    const p = new URLSearchParams({ response_type: 'code', client_id: CLIENT_ID, scope: SCOPES, redirect_uri: REDIRECT_URI, state, code_challenge_method: 'S256', code_challenge: ch, show_dialog: 'true' });
     window.location = 'https://accounts.spotify.com/authorize?' + p;
   });
 }
