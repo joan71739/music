@@ -79,15 +79,13 @@ body {
 
 /* 圓圈狀態圖示 */
 #status-ring {
-  width: 160px; height: 160px; border-radius: 50%;
+  width: 320px; height: 320px; border-radius: 50%;
   border: 1.5px solid #252525;
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.4s;
   cursor: default;
 }
-#status-ring.clickable {
-  cursor: pointer;
-}
+#status-ring.clickable { cursor: pointer; }
 #status-ring.clickable:active { transform: scale(0.95); }
 #status-ring.playing {
   border-color: #1DB954;
@@ -100,7 +98,7 @@ body {
 }
 
 /* 待機 / 結束時的 icon */
-#status-ring-icon { font-size: 78px; color: #2e2e2e; transition: color 0.4s; }
+#status-ring-icon { font-size: 156px; color: #2e2e2e; transition: color 0.4s; }
 #status-ring.playing #status-ring-icon { color: #1DB954; }
 #status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
 
