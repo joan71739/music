@@ -95,7 +95,7 @@ body {
 }
 
 /* 待機 / 結束時的 icon */
-#status-ring-icon { font-size: 38px; color: #2e2e2e; transition: color 0.4s, font-size 0.3s; }
+#status-ring-icon { font-size: 46px; color: #2e2e2e; transition: color 0.4s; }
 #status-ring.playing #status-ring-icon { color: #1DB954; }
 #status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
 
@@ -329,13 +329,15 @@ body {
   background: none;
   border: 1px solid var(--border);
   color: var(--muted);
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  font-size: 13px;
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.btn-sm:hover { border-color: #444; color: var(--subtle); }
+.btn-sm i { font-size: 18px; }
+.btn-sm:hover { border-color: #444; color: var(--subtle); background: #141414; }
+.btn-sm:active { transform: scale(0.94); }
 
 /* Green CTA */
 .btn-green {
@@ -399,11 +401,11 @@ body {
 
   <!-- ── 頂部答案卡 ── -->
   <div id="answer-card">
-    <div id="answer-hidden" onclick="revealSong()">
+    <div id="answer-hidden" onclick="toggleReveal()">
       <span id="answer-placeholder">？？？</span>
       <span id="answer-tap-hint">點擊揭曉答案</span>
     </div>
-    <div id="answer-revealed">
+    <div id="answer-revealed" onclick="toggleReveal()">
       <div id="answer-song-name"></div>
       <div id="answer-artist-name"></div>
     </div>
@@ -475,8 +477,12 @@ body {
 
   <!-- Footer -->
   <div id="player-footer">
-    <button class="btn-sm" onclick="doLogout()">🚪 登出</button>
-    <button class="btn-sm" onclick="doDebug()">🔍 測試連線</button>
+    <button class="btn-sm" onclick="doLogout()" aria-label="登出">
+      <i class="ti ti-logout" aria-hidden="true"></i>
+    </button>
+    <button class="btn-sm" onclick="doDebug()" aria-label="測試連線">
+      <i class="ti ti-plug-connected" aria-hidden="true"></i>
+    </button>
   </div>
 
 </div>
@@ -898,12 +904,22 @@ async function getTrackInfo() {
   }
 }
 
-function revealSong() {
-  document.getElementById('answer-hidden').style.display    = 'none';
-  document.getElementById('answer-revealed').style.display  = 'flex';
-  document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
-  document.getElementById('answer-artist-name').textContent = currentArtistName || '';
+let isRevealed = false;
+
+function toggleReveal() {
+  isRevealed = !isRevealed;
+  if (isRevealed) {
+    document.getElementById('answer-hidden').style.display   = 'none';
+    document.getElementById('answer-revealed').style.display = 'flex';
+    document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
+    document.getElementById('answer-artist-name').textContent = currentArtistName || '';
+  } else {
+    document.getElementById('answer-hidden').style.display   = 'flex';
+    document.getElementById('answer-revealed').style.display = 'none';
+  }
 }
+
+function revealSong() { toggleReveal(); }
 
 /* ──────────────────────────────────────────
    CHECK NFC TRIGGER
@@ -915,6 +931,7 @@ function checkNFC() {
   window.history.replaceState({}, '', window.location.pathname);
 
   // Reset answer card
+  isRevealed = false;
   document.getElementById('answer-hidden').style.display   = 'flex';
   document.getElementById('answer-revealed').style.display = 'none';
   document.getElementById('answer-song-name').textContent  = '';
