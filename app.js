@@ -2,8 +2,6 @@ const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private';
 
-const PLAYED_PLAYLIST_ID = '7DHJnThdLdcwIn9soYyIpT';
-
 let token = null, currentTrackName = '', currentArtistName = '';
 let timerHandle = null, isTimerDone = false, isPaused = false;
 let timerRemainingMs = 0, timerStartedAt = 0, tickHandle = null;
@@ -312,7 +310,6 @@ async function doDebug() {
   box.textContent += 'Token: ' + (t ? t.substring(0,15) + '...' : '無') + '\n';
   box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
   box.textContent += 'accessToken 變數: ' + (token ? '有' : '無') + '\n\n';
-  box.textContent += 'Playlist ID: ' + PLAYED_PLAYLIST_ID + '\n';
   const s = loadSettings();
   box.textContent += '限時模式: ' + s.limitMode + '\n播放秒數: ' + s.durationSec + '\n開始位置: ' + s.startSec + '秒\n\n';
   if (!t) { box.textContent += '沒有 Token，請重新登入'; return; }
@@ -322,44 +319,19 @@ async function doDebug() {
     const d = await r.json();
     box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
     (d.devices || []).forEach(dev => { box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`; });
-    if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';
-
-    // 測試加入清單
-    const testR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/tracks`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uris: ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'] })
-    });
-    const testBody = await testR.json();
-    box.textContent += '\n加入清單測試: ' + testR.status + '\n';
-    box.textContent += JSON.stringify(testBody) + '\n';
-
-    // 測試取得自己的資料
-    const meR = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + t } });
-    const meBody = await meR.json();
-    box.textContent += '\n我的帳號: ' + meBody.id + '\n';
-    
-    // 測試取得這個 playlist 的資訊
-    const plR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}`, { headers: { Authorization: 'Bearer ' + t } });
-    const plBody = await plR.json();
-    box.textContent += 'Playlist 擁有者: ' + plBody?.owner?.id + '\n';
-    
+    if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';  
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
-async function addToPlayedPlaylist(trackUri) {
-  const t = await getToken();
-  if (!t) return;
-  try {
-    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/tracks`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uris: [trackUri] })
-    });
-    const body = await r.json();
-    console.log('加入清單狀態:', r.status, JSON.stringify(body));
-    if (r.status === 201) showToast();
-  } catch(e) { console.error('加入清單失敗:', e); }
+function addToPlayedPlaylist(trackUri) {
+  const today = new Date().toDateString();
+  const key = 'played_' + today;
+  const played = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!played.includes(trackUri)) {
+    played.push(trackUri);
+    localStorage.setItem(key, JSON.stringify(played));
+  }
+  showToast();
 }
 
 function showToast() {
