@@ -2,7 +2,7 @@
  * nfc.js
  * NFC 模式專屬邏輯。
  * 負責：播放設定（start/duration/limitMode）、URL 參數解析、NFC 觸發播放。
- * 依賴：auth.js（getToken）、player.js（playTrack、_resetAnswer）
+ * 依賴：auth.js（getToken）、player.js（playTrack）
  */
 
 /* ── 設定讀寫 ── */
@@ -26,9 +26,9 @@ function applySettingsToUI(s) {
   const elRow   = document.getElementById('row-duration');
   const elSumm  = document.getElementById('settings-summary');
 
-  if (elLimit) elLimit.checked       = s.limitMode;
-  if (elStart) elStart.textContent   = s.startSec + ' 秒';
-  if (elDur)   elDur.textContent     = s.durationSec + ' 秒';
+  if (elLimit) elLimit.checked     = s.limitMode;
+  if (elStart) elStart.textContent = s.startSec + ' 秒';
+  if (elDur)   elDur.textContent   = s.durationSec + ' 秒';
   if (elRow)   elRow.classList.toggle('disabled', !s.limitMode);
 
   const parts = [];
@@ -71,8 +71,13 @@ function parsePlayParams() {
   if (!uri) return null;
 
   const s          = loadSettings();
-  const startMs    = params.has('start_ms')    ? parseInt(params.get('start_ms'))    : s.startSec * 1000;
-  const durationMs = params.has('duration_ms') ? parseInt(params.get('duration_ms')) : (s.limitMode ? s.durationSec * 1000 : null);
+  // [修正A] parseInt 加 radix 10，防止前導零被誤判為八進位
+  const startMs    = params.has('start_ms')
+    ? parseInt(params.get('start_ms'), 10)
+    : s.startSec * 1000;
+  const durationMs = params.has('duration_ms')
+    ? parseInt(params.get('duration_ms'), 10)
+    : (s.limitMode ? s.durationSec * 1000 : null);
 
   return { uri, startMs, durationMs };
 }
