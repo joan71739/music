@@ -6,7 +6,13 @@
 
 const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES       = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SCOPES       = [
+  'user-read-playback-state',
+  'user-modify-playback-state',
+  'user-read-currently-playing',
+  'playlist-read-private',        // 讀取私人歌單（主題選歌用）
+  'playlist-read-collaborative',  // 讀取協作歌單
+].join(' ');
 
 // 目前有效的 access token（runtime 快取）
 let _token = null;
