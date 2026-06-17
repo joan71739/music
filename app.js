@@ -390,12 +390,14 @@ async function togglePlayedList() {
     if (items.length === 0) {
       box.innerHTML = '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
     } else {
-      box.innerHTML = items.map(item => `
-        <div class="played-item">
-          <div class="played-song">${item.item?.name || item.track?.name || '未知歌曲'}</div>
-          <div class="played-artist">${item.item?.artists?.map(a=>a.name).join(', ') || item.track?.artists?.map(a=>a.name).join(', ') || ''}</div>
-        </div>
-      `).join('');
+      box.innerHTML = items
+        .filter(item => item.item?.name || item.track?.name)
+        .map(item => `
+          <div class="played-item">
+            <div class="played-song">${item.item?.name || item.track?.name}</div>
+            <div class="played-artist">${item.item?.artists?.map(a=>a.name).join(', ') || item.track?.artists?.map(a=>a.name).join(', ') || ''}</div>
+          </div>
+        `).join('') || '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
     }
   } catch(e) {
     box.innerHTML = '<div style="color:var(--muted);text-align:center">載入失敗</div>';
