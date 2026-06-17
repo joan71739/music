@@ -285,6 +285,10 @@ async function playTrack(uri, startMs, durationMs) {
 
     if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
+    // 暫時 debug
+    setStatus('idle', 'play狀態碼: ' + pr.status);
+    await new Promise(r => setTimeout(r, 3000));
+    
     if (pr.status === 204 || pr.status === 200) {
       _isPaused = false;
       setStatus('playing', '播放中');
