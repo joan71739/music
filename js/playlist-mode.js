@@ -1,45 +1,39 @@
 /**
  * playlist-mode.js
  * 主題選歌模式
- * 流程：切到「主題選歌」tab → 抓 Spotify 帳號歌單 → 選一個 → 隨機抽一首播放
- * 播放設定（開始位置、限時）與 NFC 模式共用同一個設定面板
- * 依賴：auth.js（getToken）、player.js（playTrack）、nfc.js（loadSettings）
+ * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  */
 
-/* ── 狀態 ── */
-let _playlists      = [];   // 從 Spotify 抓回的歌單陣列
-let _selectedId     = null; // 目前選中的歌單 id
+let _playlists       = [];
+let _selectedId      = null;
 let _playlistsLoaded = false;
 
-/* ── Tab 切換（index.html 的 onclick 呼叫） ── */
+/* ── Tab 切換 ── */
 
 function switchModeTab(tab) {
-  const nfcBtn      = document.getElementById('tab-btn-nfc');
-  const plBtn       = document.getElementById('tab-btn-playlist');
-  const plPanel     = document.getElementById('playlist-mode-panel');
-  const statusText  = document.getElementById('status-text');
-  const ringIcon    = document.getElementById('status-ring-icon');
+  const nfcBtn    = document.getElementById('tab-btn-nfc');
+  const plBtn     = document.getElementById('tab-btn-playlist');
+  const plPanel   = document.getElementById('playlist-mode-panel');
+  const statusText = document.getElementById('status-text');
+  const ringIcon  = document.getElementById('status-ring-icon');
 
   if (tab === 'nfc') {
     nfcBtn.classList.add('active');
     plBtn.classList.remove('active');
     plPanel.style.display = 'none';
-    // 圓環回到 NFC 待機狀態提示
-    if (ringIcon) ringIcon.className = 'ti ti-nfc';
+    if (ringIcon)   ringIcon.className = 'ti ti-nfc';
     if (statusText) statusText.textContent = '靠近 NFC 卡開始播放';
   } else {
     plBtn.classList.add('active');
     nfcBtn.classList.remove('active');
     plPanel.style.display = 'flex';
-    // 圓環改成音樂圖示
-    if (ringIcon) ringIcon.className = 'ti ti-music';
+    if (ringIcon)   ringIcon.className = 'ti ti-music';
     if (statusText) statusText.textContent = '選擇主題包後隨機播放';
-    // 第一次切過來才載入
     if (!_playlistsLoaded) _loadPlaylists();
   }
 }
 
-/* ── 載入 Spotify 歌單列表 ── */
+/* ── 載入歌單列表 ── */
 
 async function _loadPlaylists() {
   const listEl = document.getElementById('playlist-list');
@@ -54,7 +48,6 @@ async function _loadPlaylists() {
   }
 
   try {
-    // 取得目前使用者自己的所有歌單（最多 50 個，足夠用）
     const r = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
       headers: { Authorization: 'Bearer ' + t }
     });
@@ -76,8 +69,7 @@ async function _loadPlaylists() {
     _renderPlaylists();
 
   } catch (e) {
-    listEl.innerHTML = '<div class="pl-error">網路錯誤，請稍後再試</div>';
-    console.error('_loadPlaylists error:', e);
+    listEl.innerHTML = '<div class="pl-error">網路錯誤：' + e.message + '</div>';
   }
 }
 
@@ -101,7 +93,6 @@ function _renderPlaylists() {
 /* ── 選擇歌單 ── */
 
 function selectPlaylist(id) {
-  // 取消舊選擇
   if (_selectedId) {
     const oldCard = document.getElementById('plcard-' + _selectedId);
     const oldDot  = document.getElementById('pldot-'  + _selectedId);
@@ -116,12 +107,11 @@ function selectPlaylist(id) {
   if (card) card.classList.add('selected');
   if (dot)  dot.classList.add('selected');
 
-  // 顯示播放按鈕
   const playBtn = document.getElementById('playlist-play-btn');
   if (playBtn) playBtn.style.display = 'flex';
 }
 
-/* ── 隨機播一首（index.html 的 onclick 呼叫） ── */
+/* ── 隨機播一首 ── */
 
 async function playFromPlaylist() {
   if (!_selectedId) return;
@@ -134,64 +124,57 @@ async function playFromPlaylist() {
 
   const t = await getToken();
   if (!t) {
+    setStatus('idle', '請重新登入');
     _resetPlayBtn();
     return;
   }
 
   try {
-    // 先打 API 取得真實曲數（不信任 /me/playlists 快取的 total）
-    const metaR = await fetch(
-      `https://api.spotify.com/v1/playlists/${_selectedId}/tracks?limit=1&offset=0&fields=total`,
-      { headers: { Authorization: 'Bearer ' + t } }
-    );
-    if (!metaR.ok) {
-      setStatus('idle', '歌單讀取失敗（' + metaR.status + '）');
-      _resetPlayBtn();
-      return;
-    }
-    const meta = await metaR.json();
-    const total = meta.total || 0;
-
-    if (total === 0) {
-      setStatus('idle', '這個歌單是空的');
-      _resetPlayBtn();
-      return;
-    }
-
-    // 隨機 offset，每次抓 1 首
-    const offset = Math.floor(Math.random() * total);
-    const r = await fetch(
-      `https://api.spotify.com/v1/playlists/${_selectedId}/tracks?limit=1&offset=${offset}&fields=items(track(uri,name,artists))`,
+    // Step 1：抓歌單，limit=100 全撈，處理 total
+    setStatus('idle', '讀取歌單...');
+    const r1 = await fetch(
+      `https://api.spotify.com/v1/playlists/${_selectedId}/tracks?limit=100&offset=0`,
       { headers: { Authorization: 'Bearer ' + t } }
     );
 
-    if (!r.ok) {
-      setStatus('idle', '抽歌失敗（' + r.status + '）');
+    setStatus('idle', '歌單回應：' + r1.status);
+
+    if (!r1.ok) {
+      const errText = await r1.text();
+      setStatus('idle', '歌單失敗 ' + r1.status + '：' + errText.slice(0, 60));
       _resetPlayBtn();
       return;
     }
 
-    const d = await r.json();
-    const track = d.items && d.items[0] && d.items[0].track;
+    const d1 = await r1.json();
+    setStatus('idle', 'total=' + d1.total + ' items=' + (d1.items ? d1.items.length : 'null'));
 
-    // 防止抽到 null track（本地檔案或被刪除的歌）
-    if (!track || !track.uri) {
-      setStatus('idle', '抽到無效歌曲，請再試一次');
+    // 把有效 track 全部收集起來
+    let tracks = (d1.items || [])
+      .map(item => item && item.track)
+      .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
+
+    setStatus('idle', '有效歌曲：' + tracks.length + ' 首');
+
+    if (tracks.length === 0) {
+      setStatus('idle', '這個歌單沒有可播放的歌曲');
       _resetPlayBtn();
       return;
     }
 
-    // 讀取設定面板的設定
+    // Step 2：隨機抽一首
+    const track = tracks[Math.floor(Math.random() * tracks.length)];
+    setStatus('idle', '抽到：' + (track.name || track.uri));
+
+    // Step 3：套用設定播放
     const s = loadSettings();
     const startMs    = s.startSec * 1000;
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
 
-    // 呼叫 player.js 的核心播放函式
     await playTrack(track.uri, startMs, durationMs);
 
   } catch (e) {
-    setStatus('idle', '播放失敗，請稍後再試');
-    console.error('playFromPlaylist error:', e);
+    setStatus('idle', '錯誤：' + e.message);
   }
 
   _resetPlayBtn();
@@ -206,7 +189,7 @@ function _resetPlayBtn() {
   playBtn.innerHTML = '<i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i> 隨機播一首';
 }
 
-/* ── 工具：HTML 跳脫，防止歌單名稱含特殊字元破版 ── */
+/* ── HTML 跳脫 ── */
 
 function _esc(str) {
   return str
