@@ -6,16 +6,19 @@
 
 let _playlists       = [];
 let _selectedId      = null;
+let _selectedName    = null;
 let _playlistsLoaded = false;
+let _dropdownOpen    = false;
 
 /* ── Tab 切換 ── */
 
 function switchModeTab(tab) {
-  const nfcBtn    = document.getElementById('tab-btn-nfc');
-  const plBtn     = document.getElementById('tab-btn-playlist');
-  const plPanel   = document.getElementById('playlist-mode-panel');
+  const nfcBtn     = document.getElementById('tab-btn-nfc');
+  const plBtn      = document.getElementById('tab-btn-playlist');
+  const plPanel    = document.getElementById('playlist-mode-panel');
   const statusText = document.getElementById('status-text');
-  const ringIcon  = document.getElementById('status-ring-icon');
+  const ringIcon   = document.getElementById('status-ring-icon');
+  const ring       = document.getElementById('status-ring');
 
   if (tab === 'nfc') {
     nfcBtn.classList.add('active');
@@ -23,32 +26,46 @@ function switchModeTab(tab) {
     plPanel.style.display = 'none';
     if (ringIcon)   ringIcon.className = 'ti ti-nfc';
     if (statusText) statusText.textContent = '靠近 NFC 卡開始播放';
+    if (ring)       ring.classList.remove('clickable');
   } else {
     plBtn.classList.add('active');
     nfcBtn.classList.remove('active');
-    plPanel.style.display = 'flex';
+    plPanel.style.display = 'block';
     if (ringIcon)   ringIcon.className = 'ti ti-music';
-    if (statusText) statusText.textContent = '選擇主題包後隨機播放';
+    if (statusText) statusText.textContent = _selectedId ? '點圓圈隨機播放' : '請先選擇主題包';
+    if (ring)       ring.classList.toggle('clickable', !!_selectedId);
     if (!_playlistsLoaded) _loadPlaylists();
   }
+}
+
+/* ── 圓圈點擊：主題模式下觸發播放 ── */
+
+function ringTogglePlayPause() {
+  const tab = document.getElementById('tab-btn-playlist');
+  // 判斷目前是否在主題選歌 tab
+  if (tab && tab.classList.contains('active')) {
+    if (_selectedId) playFromPlaylist();
+    return;
+  }
+  // NFC 模式走原本邏輯
+  if (_isTimerDone) return;
+  if (!document.getElementById('status-ring').classList.contains('clickable')) return;
+  _togglePlayPause();
 }
 
 /* ── 載入歌單列表 ── */
 
 async function _loadPlaylists() {
-  const listEl = document.getElementById('playlist-list');
-  if (!listEl) return;
-
-  listEl.innerHTML = '<div class="pl-loading"><i class="ti ti-loader-2" aria-hidden="true"></i> 載入中...</div>';
+  const trigger = document.getElementById('pl-trigger-text');
+  if (trigger) trigger.textContent = '載入中...';
 
   const t = await getToken();
   if (!t) {
-    listEl.innerHTML = '<div class="pl-error">請重新登入</div>';
+    if (trigger) trigger.textContent = '請重新登入';
     return;
   }
 
   try {
-    // 先取得自己的 user id，才能過濾出自己建立的歌單
     const meR = await fetch('https://api.spotify.com/v1/me', {
       headers: { Authorization: 'Bearer ' + t }
     });
@@ -60,63 +77,80 @@ async function _loadPlaylists() {
     });
 
     if (!r.ok) {
-      listEl.innerHTML = '<div class="pl-error">歌單載入失敗（' + r.status + '）</div>';
+      if (trigger) trigger.textContent = '載入失敗（' + r.status + '）';
       return;
     }
 
     const d = await r.json();
-    // 只保留自己建立的歌單（owner.id === 自己），避免抓別人的歌單內容時 403
     _playlists = (d.items || []).filter(p => p && p.id && p.name && p.owner && p.owner.id === myId);
 
     if (_playlists.length === 0) {
-      listEl.innerHTML = '<div class="pl-error">找不到你自己建立的歌單<br><small>儲存別人的歌單無法讀取，請自己新建歌單</small></div>';
+      if (trigger) trigger.textContent = '找不到自己建立的歌單';
       return;
     }
 
     _playlistsLoaded = true;
-    _renderPlaylists();
+    if (trigger) trigger.textContent = '尚未選擇主題包';
+    _renderDropdown();
 
   } catch (e) {
-    listEl.innerHTML = '<div class="pl-error">網路錯誤：' + e.message + '</div>';
+    if (trigger) trigger.textContent = '網路錯誤：' + e.message;
   }
 }
 
-/* ── 渲染歌單卡片 ── */
+/* ── 渲染下拉選單內容 ── */
 
-function _renderPlaylists() {
+function _renderDropdown() {
   const listEl = document.getElementById('playlist-list');
   if (!listEl) return;
 
   listEl.innerHTML = _playlists.map(p => `
-    <div class="pl-card" id="plcard-${p.id}" onclick="selectPlaylist('${p.id}')">
-      <div class="pl-dot" id="pldot-${p.id}"></div>
-      <div class="pl-info">
-        <div class="pl-name">${_esc(p.name)}</div>
-        <div class="pl-meta">${p.tracks ? p.tracks.total + ' 首' : ''}</div>
-      </div>
+    <div class="pl-option" onclick="selectPlaylist('${p.id}', '${_esc(p.name)}')">
+      <div class="pl-option-name">${_esc(p.name)}</div>
+      <div class="pl-option-meta">${p.tracks ? p.tracks.total + ' 首' : ''}</div>
     </div>
   `).join('');
 }
 
+/* ── 展開 / 收合下拉 ── */
+
+function toggleDropdown() {
+  if (!_playlistsLoaded) return;
+  _dropdownOpen = !_dropdownOpen;
+  const listEl  = document.getElementById('playlist-list');
+  const arrow   = document.getElementById('pl-arrow');
+  const trigger = document.getElementById('pl-trigger');
+  if (listEl)  listEl.classList.toggle('open', _dropdownOpen);
+  if (arrow)   arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
+  if (trigger) trigger.classList.toggle('open', _dropdownOpen);
+}
+
 /* ── 選擇歌單 ── */
 
-function selectPlaylist(id) {
-  if (_selectedId) {
-    const oldCard = document.getElementById('plcard-' + _selectedId);
-    const oldDot  = document.getElementById('pldot-'  + _selectedId);
-    if (oldCard) oldCard.classList.remove('selected');
-    if (oldDot)  oldDot.classList.remove('selected');
-  }
+function selectPlaylist(id, name) {
+  _selectedId   = id;
+  _selectedName = name;
 
-  _selectedId = id;
+  // 更新觸發器文字
+  const triggerText = document.getElementById('pl-trigger-text');
+  if (triggerText) triggerText.textContent = name;
 
-  const card = document.getElementById('plcard-' + id);
-  const dot  = document.getElementById('pldot-'  + id);
-  if (card) card.classList.add('selected');
-  if (dot)  dot.classList.add('selected');
+  // 收合下拉
+  _dropdownOpen = false;
+  const listEl  = document.getElementById('playlist-list');
+  const arrow   = document.getElementById('pl-arrow');
+  const trigger = document.getElementById('pl-trigger');
+  if (listEl)  listEl.classList.remove('open');
+  if (arrow)   arrow.style.transform = '';
+  if (trigger) trigger.classList.remove('open');
 
-  const playBtn = document.getElementById('playlist-play-btn');
-  if (playBtn) playBtn.style.display = 'flex';
+  // 圓圈變可點擊
+  const ring       = document.getElementById('status-ring');
+  const statusText = document.getElementById('status-text');
+  const ringIcon   = document.getElementById('status-ring-icon');
+  if (ring)       ring.classList.add('clickable');
+  if (statusText) statusText.textContent = '點圓圈隨機播放';
+  if (ringIcon)   ringIcon.className = 'ti ti-music';
 }
 
 /* ── 隨機播一首 ── */
@@ -124,57 +158,42 @@ function selectPlaylist(id) {
 async function playFromPlaylist() {
   if (!_selectedId) return;
 
-  const playBtn = document.getElementById('playlist-play-btn');
-  if (playBtn) {
-    playBtn.disabled = true;
-    playBtn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true" style="font-size:16px;"></i> 抽歌中...';
-  }
+  const ring = document.getElementById('status-ring');
+  if (ring) ring.classList.remove('clickable');
 
   const t = await getToken();
   if (!t) {
     setStatus('idle', '請重新登入');
-    _resetPlayBtn();
+    if (ring) ring.classList.add('clickable');
     return;
   }
 
   try {
-    // Step 1：抓歌單，limit=100 全撈，處理 total
     setStatus('idle', '讀取歌單...');
     const r1 = await fetch(
       `https://api.spotify.com/v1/playlists/${_selectedId}/items?limit=100&offset=0`,
       { headers: { Authorization: 'Bearer ' + t } }
     );
 
-    setStatus('idle', '歌單回應：' + r1.status);
-
     if (!r1.ok) {
       const errText = await r1.text();
       setStatus('idle', '歌單失敗 ' + r1.status + '：' + errText.slice(0, 60));
-      _resetPlayBtn();
+      if (ring) ring.classList.add('clickable');
       return;
     }
 
     const d1 = await r1.json();
-    setStatus('idle', 'total=' + d1.total + ' items=' + (d1.items ? d1.items.length : 'null'));
-
-    // 把有效 track 全部收集起來
     let tracks = (d1.items || [])
       .map(item => item && (item.track || item.item))
       .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
 
-    setStatus('idle', '有效歌曲：' + tracks.length + ' 首');
-
     if (tracks.length === 0) {
       setStatus('idle', '這個歌單沒有可播放的歌曲');
-      _resetPlayBtn();
+      if (ring) ring.classList.add('clickable');
       return;
     }
 
-    // Step 2：隨機抽一首
     const track = tracks[Math.floor(Math.random() * tracks.length)];
-    setStatus('idle', '抽到：' + (track.name || track.uri));
-
-    // Step 3：套用設定播放
     const s = loadSettings();
     const startMs    = s.startSec * 1000;
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
@@ -183,18 +202,8 @@ async function playFromPlaylist() {
 
   } catch (e) {
     setStatus('idle', '錯誤：' + e.message);
+    if (ring) ring.classList.add('clickable');
   }
-
-  _resetPlayBtn();
-}
-
-/* ── 重設播放按鈕 ── */
-
-function _resetPlayBtn() {
-  const playBtn = document.getElementById('playlist-play-btn');
-  if (!playBtn) return;
-  playBtn.disabled = false;
-  playBtn.innerHTML = '<i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i> 隨機播一首';
 }
 
 /* ── HTML 跳脫 ── */
@@ -204,5 +213,6 @@ function _esc(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
