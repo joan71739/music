@@ -48,6 +48,13 @@ async function _loadPlaylists() {
   }
 
   try {
+    // 先取得自己的 user id，才能過濾出自己建立的歌單
+    const meR = await fetch('https://api.spotify.com/v1/me', {
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    const me = await meR.json();
+    const myId = me.id;
+
     const r = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
       headers: { Authorization: 'Bearer ' + t }
     });
@@ -58,10 +65,11 @@ async function _loadPlaylists() {
     }
 
     const d = await r.json();
-    _playlists = (d.items || []).filter(p => p && p.id && p.name);
+    // 只保留自己建立的歌單（owner.id === 自己），避免抓別人的歌單內容時 403
+    _playlists = (d.items || []).filter(p => p && p.id && p.name && p.owner && p.owner.id === myId);
 
     if (_playlists.length === 0) {
-      listEl.innerHTML = '<div class="pl-error">找不到任何歌單</div>';
+      listEl.innerHTML = '<div class="pl-error">找不到你自己建立的歌單<br><small>儲存別人的歌單無法讀取，請自己新建歌單</small></div>';
       return;
     }
 
@@ -133,7 +141,7 @@ async function playFromPlaylist() {
     // Step 1：抓歌單，limit=100 全撈，處理 total
     setStatus('idle', '讀取歌單...');
     const r1 = await fetch(
-      `https://api.spotify.com/v1/playlists/${_selectedId}/tracks?limit=100&offset=0`,
+      `https://api.spotify.com/v1/playlists/${_selectedId}/items?limit=100&offset=0`,
       { headers: { Authorization: 'Bearer ' + t } }
     );
 
