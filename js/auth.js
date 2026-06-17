@@ -65,22 +65,25 @@ async function handleCallback() {
 
   window.history.replaceState({}, '', window.location.pathname);
 
-  const r = await fetch('https://accounts.spotify.com/api/token', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    new URLSearchParams({
-      grant_type:    'authorization_code',
-      code,
-      redirect_uri:  REDIRECT_URI,
-      client_id:     CLIENT_ID,
-      code_verifier: sessionStorage.getItem('cv'),
-    }),
-  });
-
-  const d = await r.json();
-  if (d.access_token) {
-    _saveToken(d);
-    return true;
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    new URLSearchParams({
+        grant_type:    'authorization_code',
+        code,
+        redirect_uri:  REDIRECT_URI,
+        client_id:     CLIENT_ID,
+        code_verifier: sessionStorage.getItem('cv'),
+      }),
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      _saveToken(d);
+      return true;
+    }
+  } catch(e) {
+    console.error('handleCallback error:', e);
   }
   return false;
 }
@@ -101,7 +104,7 @@ async function getToken() {
 
   const t   = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
-  if (t && exp && Date.now() < parseInt(exp) - 60000) {
+  if (t && exp && Date.now() < parseInt(exp, 10) - 60000) {  // [修正A] radix 10
     _token = t;
     return _token;
   }
@@ -122,22 +125,29 @@ async function _refreshToken() {
   const refresh = localStorage.getItem('spotify_refresh');
   if (!refresh) return false;
 
-  const r = await fetch('https://accounts.spotify.com/api/token', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    new URLSearchParams({
-      grant_type:    'refresh_token',
-      refresh_token: refresh,
-      client_id:     CLIENT_ID,
-    }),
-  });
-
-  const d = await r.json();
-  if (d.access_token) {
-    _token = d.access_token;
-    localStorage.setItem('spotify_token',   _token);
-    localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
-    return true;
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    new URLSearchParams({
+        grant_type:    'refresh_token',
+        refresh_token: refresh,
+        client_id:     CLIENT_ID,
+      }),
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      _token = d.access_token;
+      localStorage.setItem('spotify_token',   _token);
+      localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
+      // [修正C] Spotify 有時會輪換 refresh_token，有就更新
+      if (d.refresh_token) {
+        localStorage.setItem('spotify_refresh', d.refresh_token);
+      }
+      return true;
+    }
+  } catch(e) {
+    console.error('_refreshToken error:', e);
   }
   return false;
 }
