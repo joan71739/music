@@ -139,9 +139,18 @@ async function playFromPlaylist() {
   }
 
   try {
-    // 先取得歌單總曲數
-    const pl = _playlists.find(p => p.id === _selectedId);
-    const total = pl && pl.tracks ? pl.tracks.total : 0;
+    // 先打 API 取得真實曲數（不信任 /me/playlists 快取的 total）
+    const metaR = await fetch(
+      `https://api.spotify.com/v1/playlists/${_selectedId}/tracks?limit=1&offset=0&fields=total`,
+      { headers: { Authorization: 'Bearer ' + t } }
+    );
+    if (!metaR.ok) {
+      setStatus('idle', '歌單讀取失敗（' + metaR.status + '）');
+      _resetPlayBtn();
+      return;
+    }
+    const meta = await metaR.json();
+    const total = meta.total || 0;
 
     if (total === 0) {
       setStatus('idle', '這個歌單是空的');
