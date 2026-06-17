@@ -288,16 +288,7 @@ function checkNFC() {
 }
 
 async function addToPlayedPlaylist(trackUri) {
-  const today = new Date().toDateString();
-  const key = 'played_' + today;
-  const played = JSON.parse(localStorage.getItem(key) || '[]');
-  const exists = played.find(item => item.uri === trackUri);
-  if (!exists) {
-    played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
-    localStorage.setItem(key, JSON.stringify(played));
-  }
-
-  // 同步到 Spotify 清單
+   // 同步到 Spotify 清單
   const t = await getToken(); if (!t) return;
   try {
     const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
@@ -388,22 +379,32 @@ async function init() {
   showView('login');
 }
 
-function togglePlayedList() {
+async function togglePlayedList() {
   const box = document.getElementById('played-list-box');
   if (box.style.display === 'block') { box.style.display = 'none'; return; }
-  const today = new Date().toDateString();
-  const played = JSON.parse(localStorage.getItem('played_' + today) || '[]');
-  if (played.length === 0) {
-    box.innerHTML = '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
-  } else {
-    box.innerHTML = played.map(item => `
-      <div class="played-item">
-        <div class="played-song">${item.name || item}</div>
-        <div class="played-artist">${item.artist || ''}</div>
-      </div>
-    `).join('');
-  }
   box.style.display = 'block';
+  box.innerHTML = '<div style="color:var(--muted);text-align:center">載入中...</div>';
+  const t = await getToken();
+  if (!t) { box.innerHTML = '<div style="color:var(--muted);text-align:center">請重新登入</div>'; return; }
+  try {
+    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items?limit=100`, {
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    const d = await r.json();
+    const items = d.items || [];
+    if (items.length === 0) {
+      box.innerHTML = '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
+    } else {
+      box.innerHTML = items.map(item => `
+        <div class="played-item">
+          <div class="played-song">${item.item?.name || item.track?.name || '未知歌曲'}</div>
+          <div class="played-artist">${item.item?.artists?.map(a=>a.name).join(', ') || item.track?.artists?.map(a=>a.name).join(', ') || ''}</div>
+        </div>
+      `).join('');
+    }
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--muted);text-align:center">載入失敗</div>';
+  }
 }
 
 init();
