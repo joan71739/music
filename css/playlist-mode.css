@@ -1,2 +1,177 @@
-/* ── 主題選歌模式 ── */
-/* 預留，下一階段開發時填入 */
+/* ══════════════════════════════
+   css/playlist-mode.css
+   主題選歌模式專屬樣式
+   ══════════════════════════════ */
+
+/* ── Tab Bar ── */
+#mode-tab-bar {
+  width: 100%;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mode-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 0.7rem 0;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.mode-tab i {
+  font-size: 18px;
+}
+
+.mode-tab:active {
+  opacity: 0.7;
+}
+
+.mode-tab.active {
+  color: var(--green);
+}
+
+.mode-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--green);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ── 主題選歌面板 ── */
+#playlist-mode-panel {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* ── 歌單列表容器 ── */
+#playlist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+#playlist-list::-webkit-scrollbar {
+  width: 3px;
+}
+#playlist-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+#playlist-list::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+
+/* ── 歌單卡片 ── */
+.pl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.pl-card:hover {
+  border-color: #333;
+  background: #1a1a1a;
+}
+
+.pl-card:active {
+  transform: scale(0.98);
+}
+
+.pl-card.selected {
+  border-color: var(--green);
+  background: var(--green-dim);
+}
+
+/* ── 選中圓點 ── */
+.pl-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #333;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pl-dot.selected {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+/* ── 歌單資訊 ── */
+.pl-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pl-name {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.pl-card.selected .pl-name {
+  color: var(--green);
+}
+
+.pl-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── 載入中 / 錯誤 ── */
+.pl-loading,
+.pl-error {
+  padding: 1.2rem;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pl-loading i {
+  font-size: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── 隨機播放按鈕 ── */
+#playlist-play-btn {
+  display: flex;
+  align-items: center;
+}
