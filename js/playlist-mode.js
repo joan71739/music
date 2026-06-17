@@ -159,7 +159,7 @@ async function playFromPlaylist() {
 
     // 把有效 track 全部收集起來
     let tracks = (d1.items || [])
-      .map(item => item && item.track)
+      .map(item => item && (item.track || item.item))
       .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
 
     setStatus('idle', '有效歌曲：' + tracks.length + ' 首');
