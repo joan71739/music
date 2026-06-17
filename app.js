@@ -1,6 +1,7 @@
 const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private';
+const PLAYED_PLAYLIST_ID = '7DHJnThdLdcwIn9soYyIpT';
 
 let token = null, currentTrackName = '', currentArtistName = '';
 let timerHandle = null, isTimerDone = false, isPaused = false;
@@ -183,17 +184,13 @@ async function togglePlayPause() {
 function pauseTimer() {
   if (!timerStartedAt) return;
   timerRemainingMs = Math.max(0, timerRemainingMs - (Date.now() - timerStartedAt));
-  timerStartedAt = 0; 
-  clearTimeout(timerHandle); 
+  timerStartedAt = 0;
+  clearTimeout(timerHandle);
   clearInterval(tickHandle);
-  
   const bar = document.getElementById('timer-bar');
-  
-  // 關鍵修正：先取得當下的實際寬度，再把動畫關掉
   const currentWidth = window.getComputedStyle(bar).width;
-  bar.style.transition = 'none'; 
+  bar.style.transition = 'none';
   bar.style.width = currentWidth;
-  
   document.getElementById('timer-label').textContent = Math.ceil(timerRemainingMs / 1000) + ' 秒（暫停）';
 }
 
@@ -246,33 +243,20 @@ async function playTrack(uri, startMs, durationMs) {
   if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
   if (pr.status === 204 || pr.status === 200) {
     setStatus('playing', '播放中'); isPaused = false; showPlayPause(true);
-    
-    // 關鍵修正：動態組合 startMs 與 durationMs 的顯示文字
     const badgeParts = [];
-    if (startMs && startMs > 0) {
-      badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
-    }
+    if (startMs && startMs > 0) badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
     if (durationMs) {
       badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
-      // 只有在有限時的情況下才啟動計時器
       setTimeout(() => startTimer(durationMs), 500);
     }
-
-    // 如果有任何設定，就顯示標籤
     const badge = document.getElementById('mode-badge');
-    if (badgeParts.length > 0) {
-      badge.textContent = badgeParts.join(' · ');
-      badge.classList.add('show');
-    } else {
-      badge.classList.remove('show');
-    }
-    
+    if (badgeParts.length > 0) { badge.textContent = badgeParts.join(' · '); badge.classList.add('show'); }
+    else { badge.classList.remove('show'); }
     setTimeout(async () => {
       await getTrackInfo();
       await addToPlayedPlaylist(uri);
     }, 1000);
-    
-    } else { setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）'); }
+  } else { setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）'); }
 }
 
 async function getTrackInfo() {
@@ -303,6 +287,46 @@ function checkNFC() {
   setTimeout(() => playTrack(params.uri, params.startMs, params.durationMs), 300);
 }
 
+async function addToPlayedPlaylist(trackUri) {
+  const today = new Date().toDateString();
+  const key = 'played_' + today;
+  const played = JSON.parse(localStorage.getItem(key) || '[]');
+  const exists = played.find(item => item.uri === trackUri);
+  if (!exists) {
+    played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
+    localStorage.setItem(key, JSON.stringify(played));
+  }
+
+  // 同步到 Spotify 清單
+  const t = await getToken(); if (!t) return;
+  try {
+    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: [trackUri] })
+    });
+    const body = await r.json();
+    if (r.status === 201) {
+      showToast('✓ 已加入今日歌單');
+    } else {
+      showToast('⚠ 本地已記錄，Spotify 同步失敗 ' + r.status);
+      console.warn('Spotify 清單同步失敗:', r.status, JSON.stringify(body));
+    }
+  } catch(e) {
+    showToast('⚠ 本地已記錄，網路錯誤');
+    console.error('加入清單錯誤:', e);
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('played-toast');
+  const isOk = !msg || msg.startsWith('✓');
+  toast.innerHTML = `<span class="toast-check" style="background:${isOk ? 'var(--green)' : '#e74c3c'}">${isOk ? '✓' : '!'}</span>${msg || '已加入今日歌單'}`;
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 3000);
+}
+
 async function doDebug() {
   const box = document.getElementById('debug-box');
   if (box.style.display === 'block') { box.style.display = 'none'; return; }
@@ -313,45 +337,46 @@ async function doDebug() {
   box.textContent += 'accessToken 變數: ' + (token ? '有' : '無') + '\n\n';
   const s = loadSettings();
   box.textContent += '限時模式: ' + s.limitMode + '\n播放秒數: ' + s.durationSec + '\n開始位置: ' + s.startSec + '秒\n\n';
+  box.textContent += 'Playlist ID: ' + PLAYED_PLAYLIST_ID + '\n\n';
   if (!t) { box.textContent += '沒有 Token，請重新登入'; return; }
   try {
-    const r = await fetch('https://api.spotify.com/v1/me/player/devices', { headers: { Authorization: 'Bearer ' + t } });
-    box.textContent += 'API 狀態: ' + r.status + '\n';
-    const d = await r.json();
-    box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
-    (d.devices || []).forEach(dev => { box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`; });
-    if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';  
+    // 1. 測試裝置
+    const dr = await fetch('https://api.spotify.com/v1/me/player/devices', { headers: { Authorization: 'Bearer ' + t } });
+    box.textContent += '裝置 API 狀態: ' + dr.status + '\n';
+    const dd = await dr.json();
+    box.textContent += '裝置數量: ' + (dd.devices ? dd.devices.length : 0) + '\n';
+    (dd.devices || []).forEach(dev => { box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`; });
+
+    // 2. 測試我的帳號
+    const meR = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + t } });
+    const meBody = await meR.json();
+    box.textContent += '\n我的帳號 ID: ' + (meBody.id || '無法取得') + '\n';
+    box.textContent += '訂閱類型: ' + (meBody.product || '未知') + '\n';
+
+    // 3. 測試 Playlist 擁有者
+    const plR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}`, { headers: { Authorization: 'Bearer ' + t } });
+    const plBody = await plR.json();
+    box.textContent += '\nPlaylist 狀態: ' + plR.status + '\n';
+    box.textContent += 'Playlist 名稱: ' + (plBody.name || '無法取得') + '\n';
+    box.textContent += 'Playlist 擁有者: ' + (plBody.owner?.id || '無法取得') + '\n';
+    box.textContent += '帳號是否匹配: ' + (meBody.id === plBody.owner?.id ? '✓ 是本人' : '✗ 不是本人！') + '\n';
+
+    // 4. 測試新增到清單（用新 endpoint /items）
+    box.textContent += '\n測試新增到清單...\n';
+    const addR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'] })
+    });
+    const addBody = await addR.json();
+    box.textContent += '新增結果: ' + addR.status + '\n';
+    box.textContent += JSON.stringify(addBody) + '\n';
+    if (addR.status === 201) {
+      box.textContent += '✓ 成功！清單可以寫入\n';
+    } else {
+      box.textContent += '✗ 失敗，錯誤原因: ' + (addBody.error?.message || JSON.stringify(addBody)) + '\n';
+    }
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
-}
-
-function addToPlayedPlaylist(trackUri) {
-  const today = new Date().toDateString();
-  const key = 'played_' + today;
-  const played = JSON.parse(localStorage.getItem(key) || '[]');
-  const exists = played.find(item => item.uri === trackUri);
-  
-  if (!exists) {
-    played.push({ uri: trackUri, name: currentTrackName, artist: currentArtistName });
-    localStorage.setItem(key, JSON.stringify(played));
-    
-    showToast();
-  }
-}
-
-function showToast() {
-  const toast = document.getElementById('played-toast');
-  
-  toast.innerHTML = `
-    <span class="toast-check">✓</span>
-    已加入今日歌單
-  `;
-  
-  toast.classList.add('show');
-  
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => { 
-    toast.classList.remove('show'); 
-  }, 3000);
 }
 
 async function init() {
@@ -361,15 +386,13 @@ async function init() {
   const t = await getToken();
   if (t) { showView('player'); checkNFC(); return; }
   showView('login');
-} 
+}
 
 function togglePlayedList() {
   const box = document.getElementById('played-list-box');
   if (box.style.display === 'block') { box.style.display = 'none'; return; }
-  
   const today = new Date().toDateString();
   const played = JSON.parse(localStorage.getItem('played_' + today) || '[]');
-  
   if (played.length === 0) {
     box.innerHTML = '<div style="color:var(--muted);text-align:center">今天還沒播放任何歌曲</div>';
   } else {
