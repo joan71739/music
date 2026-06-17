@@ -20,19 +20,21 @@ function _saveSettings(s) {
 }
 
 function applySettingsToUI(s) {
-  document.getElementById('setting-limit').checked         = s.limitMode;
-  document.getElementById('display-start').textContent     = s.startSec + ' 秒';
-  document.getElementById('display-dur').textContent       = s.durationSec + ' 秒';
+  const elLimit = document.getElementById('setting-limit');
+  const elStart = document.getElementById('display-start');
+  const elDur   = document.getElementById('display-dur');
+  const elRow   = document.getElementById('row-duration');
+  const elSumm  = document.getElementById('settings-summary');
 
-  const durRow = document.getElementById('row-duration');
-  if (durRow) durRow.classList.toggle('disabled', !s.limitMode);
+  if (elLimit) elLimit.checked       = s.limitMode;
+  if (elStart) elStart.textContent   = s.startSec + ' 秒';
+  if (elDur)   elDur.textContent     = s.durationSec + ' 秒';
+  if (elRow)   elRow.classList.toggle('disabled', !s.limitMode);
 
   const parts = [];
-  if (s.startSec > 0)  parts.push('從' + s.startSec + '秒');
-  if (s.limitMode)     parts.push('限時' + s.durationSec + '秒');
-
-  const el = document.getElementById('settings-summary');
-  if (el) el.textContent = parts.join(' · ');
+  if (s.startSec > 0) parts.push('從' + s.startSec + '秒');
+  if (s.limitMode)    parts.push('限時' + s.durationSec + '秒');
+  if (elSumm) elSumm.textContent = parts.join(' · ');
 }
 
 function stepSetting(key, delta) {
@@ -44,8 +46,10 @@ function stepSetting(key, delta) {
 }
 
 function onLimitToggle() {
+  const el = document.getElementById('setting-limit');
+  if (!el) return;
   const s = loadSettings();
-  s.limitMode = document.getElementById('setting-limit').checked;
+  s.limitMode = el.checked;
   _saveSettings(s);
   applySettingsToUI(s);
 }
