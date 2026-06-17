@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金曲歌王2.0</title>
 
-  <!-- 外部字型 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 
-  <!-- CSS：共用 → 元件 → 模式專屬 -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/login.css">
   <link rel="stylesheet" href="css/player.css">
@@ -17,9 +15,7 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════
-     登入頁（共用）
-     ══════════════════════════════ -->
+<!-- 登入頁 -->
 <div id="login-view">
   <div class="login-icon">
     <div class="icon-layered">
@@ -32,9 +28,7 @@
   <button class="btn-green" onclick="login()">連結 Spotify 帳號</button>
 </div>
 
-<!-- ══════════════════════════════
-     播放器（共用外框）
-     ══════════════════════════════ -->
+<!-- 播放器 -->
 <div id="player-view">
 
   <!-- 答案卡（共用） -->
@@ -49,6 +43,18 @@
     </div>
   </div>
   <div id="answer-divider"></div>
+
+  <!-- Tab Bar -->
+  <div id="mode-tab-bar">
+    <button class="mode-tab active" id="tab-btn-nfc" onclick="switchModeTab('nfc')">
+      <i class="ti ti-nfc" aria-hidden="true"></i>
+      <span>NFC 感應</span>
+    </button>
+    <button class="mode-tab" id="tab-btn-playlist" onclick="switchModeTab('playlist')">
+      <i class="ti ti-layout-grid" aria-hidden="true"></i>
+      <span>主題選歌</span>
+    </button>
+  </div>
 
   <!-- Play body -->
   <div id="play-body">
@@ -75,7 +81,7 @@
       <div id="timer-label"></div>
     </div>
 
-    <!-- ── NFC 模式：播放設定面板 ── -->
+    <!-- 播放設定面板（兩個 tab 共用，永遠顯示） -->
     <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
       <div class="settings-toggle-left">
         <i class="ti ti-settings" style="font-size:15px" aria-hidden="true"></i>
@@ -121,15 +127,22 @@
         </div>
       </div>
     </div>
-    <!-- ── /NFC 模式 ── -->
 
-    <!-- 預留：主題選歌模式區塊（playlist-mode.js 開發時插入） -->
+    <!-- 主題選歌面板（playlist-mode.js 控制顯示） -->
+    <div id="playlist-mode-panel" style="display:none; width:100%; max-width:360px;">
+      <div id="playlist-list"></div>
+      <button class="btn-green" id="playlist-play-btn" onclick="playFromPlaylist()"
+              style="display:none; width:100%; margin-top:12px; justify-content:center; gap:8px;">
+        <i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i>
+        隨機播一首
+      </button>
+    </div>
 
     <div id="debug-box"></div>
     <div id="played-list-box"></div>
   </div>
 
-  <!-- Footer（共用） -->
+  <!-- Footer -->
   <div id="player-footer">
     <button class="btn-sm" onclick="doLogout()" aria-label="登出">
       <i class="ti ti-logout" aria-hidden="true"></i>登出
@@ -142,15 +155,11 @@
     </button>
   </div>
 
-</div><!-- /player-view -->
+</div>
 
-<!-- Toast（共用） -->
+<!-- Toast -->
 <div id="played-toast"></div>
 
-<!-- ══════════════════════════════
-     JS：依賴順序載入
-     auth → player → history → nfc → playlist-mode → main
-     ══════════════════════════════ -->
 <script src="js/auth.js"></script>
 <script src="js/player.js"></script>
 <script src="js/history.js"></script>
