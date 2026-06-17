@@ -1,0 +1,62 @@
+/* ── 登入頁 ── */
+#login-view {
+  text-align: center;
+  padding: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-icon {
+  margin-bottom: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.login-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+/* ── 登入頁 icon 變體 ── */
+.icon-gold {
+  font-size: 80px;
+  color: #FFD700;
+  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.3));
+}
+
+.icon-green-glow {
+  font-size: 80px;
+  color: var(--green);
+  filter: drop-shadow(0 0 16px rgba(29, 185, 84, 0.4));
+}
+
+.icon-layered {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.icon-layered .ti-vinyl {
+  font-size: 80px;
+  color: var(--green);
+}
+.icon-layered .ti-nfc {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 32px;
+  color: #fff;
+  background: var(--bg);
+  border-radius: 50%;
+  padding: 2px;
+}
