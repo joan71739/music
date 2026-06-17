@@ -12,6 +12,8 @@ const SCOPES       = [
   'user-read-currently-playing',
   'playlist-read-private',        // 讀取私人歌單（主題選歌用）
   'playlist-read-collaborative',  // 讀取協作歌單
+  'playlist-modify-public',
+  'playlist-modify-private',
 ].join(' ');
 
 // 目前有效的 access token（runtime 快取）
