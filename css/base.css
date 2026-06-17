@@ -1,0 +1,55 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --green: #1DB954;
+  --green-dim: rgba(29,185,84,0.15);
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #222;
+  --text: #fff;
+  --muted: #666;
+  --subtle: #aaa;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+/* ── 共用按鈕 ── */
+.btn-sm {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.btn-sm i { font-size: 17px; }
+.btn-sm:hover { border-color: #444; color: var(--subtle); background: #141414; }
+.btn-sm:active { transform: scale(0.96); }
+
+.btn-green {
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 0.85rem 2.2rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+}
+.btn-green:hover { opacity: 0.9; }
+.btn-green:active { transform: scale(0.97); }
