@@ -43,6 +43,7 @@
     </div>
   </div>
   <div id="answer-divider"></div>
+   
 
   <!-- Tab Bar -->
   <div id="mode-tab-bar">
@@ -58,6 +59,16 @@
 
   <!-- Play body -->
   <div id="play-body">
+
+    <!-- 主題選歌面板（playlist-mode.js 控制顯示） -->
+    <div id="playlist-mode-panel" style="display:none; width:100%; max-width:360px;">
+      <div id="playlist-list"></div>
+      <button class="btn-green" id="playlist-play-btn" onclick="playFromPlaylist()"
+              style="display:none; width:100%; margin-top:12px; justify-content:center; gap:8px;">
+        <i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i>
+        隨機播一首
+      </button>
+    </div>
 
     <!-- 狀態圓環（共用） -->
     <div class="status-area">
@@ -126,16 +137,6 @@
           <button class="step-btn" onclick="stepSetting('dur',5)">+</button>
         </div>
       </div>
-    </div>
-
-    <!-- 主題選歌面板（playlist-mode.js 控制顯示） -->
-    <div id="playlist-mode-panel" style="display:none; width:100%; max-width:360px;">
-      <div id="playlist-list"></div>
-      <button class="btn-green" id="playlist-play-btn" onclick="playFromPlaylist()"
-              style="display:none; width:100%; margin-top:12px; justify-content:center; gap:8px;">
-        <i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i>
-        隨機播一首
-      </button>
     </div>
 
     <div id="debug-box"></div>
