@@ -11,22 +11,15 @@ let _toastTimeout = null;
 function addToPlayedPlaylist(trackUri) {
   const today  = new Date().toDateString();
   const key    = 'played_' + today;
-
-  // [修正歌單重複] 讀取時過濾掉格式不正確的舊資料（item 不是物件或沒有 uri 欄位）
   let played = [];
   try {
-    const raw = JSON.parse(localStorage.getItem(key) || '[]');
-    played = Array.isArray(raw)
-      ? raw.filter(item => item && typeof item === 'object' && item.uri)
-      : [];
+    played = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!Array.isArray(played)) played = [];
   } catch(e) {
     played = [];
   }
-
-  // uri 相同就跳過，不重複加入
-  const exists = played.some(item => item.uri === trackUri);
+  const exists = played.some(item => item && item.uri === trackUri);
   if (exists) return;
-
   played.push({
     uri:    trackUri,
     name:   currentTrackName,
@@ -43,10 +36,8 @@ function togglePlayedList() {
   const today  = new Date().toDateString();
   let played = [];
   try {
-    const raw = JSON.parse(localStorage.getItem('played_' + today) || '[]');
-    played = Array.isArray(raw)
-      ? raw.filter(item => item && typeof item === 'object' && item.uri)
-      : [];
+   played = JSON.parse(localStorage.getItem('played_' + today) || '[]');
+    if (!Array.isArray(played)) played = [];
   } catch(e) {
     played = [];
   }
