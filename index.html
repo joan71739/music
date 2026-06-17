@@ -43,7 +43,6 @@
     </div>
   </div>
   <div id="answer-divider"></div>
-   
 
   <!-- Tab Bar -->
   <div id="mode-tab-bar">
@@ -60,14 +59,13 @@
   <!-- Play body -->
   <div id="play-body">
 
-    <!-- 主題選歌面板（playlist-mode.js 控制顯示） -->
-    <div id="playlist-mode-panel" style="display:none; width:100%; max-width:360px;">
-      <div id="playlist-list"></div>
-      <button class="btn-green" id="playlist-play-btn" onclick="playFromPlaylist()"
-              style="display:none; width:100%; margin-top:12px; justify-content:center; gap:8px;">
-        <i class="ti ti-arrows-shuffle" aria-hidden="true" style="font-size:16px;"></i>
-        隨機播一首
+    <!-- 主題選歌：Dropdown（playlist-mode.js 控制） -->
+    <div id="playlist-mode-panel" style="display:none;">
+      <button id="pl-trigger" onclick="toggleDropdown()">
+        <span id="pl-trigger-text">尚未選擇主題包</span>
+        <span id="pl-arrow">▾</span>
       </button>
+      <div id="playlist-list"></div>
     </div>
 
     <!-- 狀態圓環（共用） -->
@@ -92,7 +90,7 @@
       <div id="timer-label"></div>
     </div>
 
-    <!-- 播放設定面板（兩個 tab 共用，永遠顯示） -->
+    <!-- 播放設定（兩個 tab 共用） -->
     <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
       <div class="settings-toggle-left">
         <i class="ti ti-settings" style="font-size:15px" aria-hidden="true"></i>
