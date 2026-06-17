@@ -1,0 +1,125 @@
+/* ── NFC 設定面板：id 對應元素 ── */
+#settings-toggle-btn { /* 繼承 .settings-toggle，不需額外樣式 */ }
+#row-duration        { /* 繼承 .setting-row，disabled 狀態由 JS 控制 */ }
+#setting-limit       { /* 繼承 .toggle-switch input */ }
+#display-start,
+#display-dur         { /* 繼承 .step-val */ }
+
+/* ── NFC 設定面板 toggle 按鈕 ── */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.55rem 1.2rem;
+  border-radius: 50px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 0.8rem;
+  width: 100%;
+  max-width: 360px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.settings-toggle:hover { border-color: #444; color: var(--subtle); }
+.settings-toggle-left  { display: flex; align-items: center; gap: 7px; }
+.settings-toggle-right { display: flex; align-items: center; gap: 4px; }
+#settings-summary { font-size: 11px; color: #1DB954; }
+
+.s-arrow {
+  display: inline-block;
+  transition: transform 0.25s;
+  font-size: 11px;
+  color: #333;
+}
+.settings-toggle.open .s-arrow { transform: rotate(180deg); }
+
+/* ── 設定面板 ── */
+#settings-panel {
+  width: 100%;
+  max-width: 360px;
+  background: #111;
+  border: 1px solid #1a1a1a;
+  border-radius: 14px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.25s;
+  margin-bottom: 0.8rem;
+}
+#settings-panel.open { max-height: 300px; opacity: 1; }
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  transition: opacity 0.2s;
+}
+.setting-row + .setting-row { border-top: 1px solid #1a1a1a; }
+.setting-row.disabled { opacity: 0.35; pointer-events: none; }
+
+.setting-label { font-size: 13px; color: #888; }
+.setting-label small { display: block; font-size: 10px; color: #444; margin-top: 2px; }
+
+/* ── Stepper ── */
+.stepper { display: flex; align-items: center; }
+
+.step-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #1a1a1a;
+  color: #aaa;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.step-btn:hover  { background: #222; color: #fff; }
+.step-btn:active { transform: scale(0.92); }
+
+.step-val {
+  min-width: 52px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── Toggle switch ── */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #252525;
+  border-radius: 26px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--green); }
+.toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); }
