@@ -36,14 +36,14 @@ function setStatus(state, text) {
 
   if (state === 'playing') {
     ring.classList.add('playing');
-    icon.className     = 'ti ti-music';
-    pill.style.display = 'flex';
+    icon.className      = 'ti ti-music';
+    pill.style.display  = 'flex';
     pState.textContent  = '播放中 · ';
     pAction.textContent = '點我暫停';
   } else if (state === 'paused') {
     ring.classList.add('ended');
-    icon.className     = 'ti ti-player-pause';
-    pill.style.display = 'flex';
+    icon.className      = 'ti ti-player-pause';
+    pill.style.display  = 'flex';
     pState.textContent  = '已暫停 · ';
     pAction.textContent = '點我繼續';
   } else if (state === 'ended') {
@@ -213,15 +213,20 @@ async function _fetchTrackInfo() {
   const t = await getToken();
   if (!t) return;
 
-  const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-    headers: { Authorization: 'Bearer ' + t },
-  });
-  if (r.status === 200) {
-    const d = await r.json();
-    if (d && d.item) {
-      currentTrackName  = d.item.name;
-      currentArtistName = d.item.artists.map(a => a.name).join(', ');
+  try {
+    const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { Authorization: 'Bearer ' + t },
+    });
+    // 204 = 沒有歌曲在播放，跳過
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d && d.item) {
+        currentTrackName  = d.item.name;
+        currentArtistName = d.item.artists.map(a => a.name).join(', ');
+      }
     }
+  } catch(e) {
+    console.error('_fetchTrackInfo error:', e);
   }
 }
 
@@ -229,7 +234,7 @@ async function _fetchTrackInfo() {
 
 /**
  * 播放指定曲目。
- * @param {string} uri        Spotify track URI
+ * @param {string} uri             Spotify track URI
  * @param {number|null} startMs    開始位置（毫秒），null = 從頭
  * @param {number|null} durationMs 限時長度（毫秒），null = 完整播放
  */
@@ -243,13 +248,23 @@ async function playTrack(uri, startMs, durationMs) {
   if (!t) { setStatus('idle', '請重新登入'); showView('login'); return; }
 
   setStatus('idle', '尋找裝置...');
-  const dr = await fetch('https://api.spotify.com/v1/me/player/devices', {
-    headers: { Authorization: 'Bearer ' + t },
-  });
-  if (dr.status === 401) { setStatus('idle', '登入過期，請重新登入'); doLogout(); return; }
 
-  const dd      = await dr.json();
-  const devices = dd.devices || [];
+  // [修正D] devices API 加 try/catch，防止 429、503 等非 JSON 回應噴錯
+  let devices = [];
+  try {
+    const dr = await fetch('https://api.spotify.com/v1/me/player/devices', {
+      headers: { Authorization: 'Bearer ' + t },
+    });
+    if (dr.status === 401) { setStatus('idle', '登入過期，請重新登入'); doLogout(); return; }
+    if (!dr.ok) { setStatus('idle', `裝置查詢失敗（${dr.status}），請稍後再試`); return; }
+    const dd = await dr.json();
+    devices = dd.devices || [];
+  } catch(e) {
+    setStatus('idle', '網路錯誤，請確認連線');
+    console.error('devices fetch error:', e);
+    return;
+  }
+
   if (devices.length === 0) {
     setStatus('idle', '找不到裝置！請先開啟 Spotify app');
     return;
@@ -260,38 +275,43 @@ async function playTrack(uri, startMs, durationMs) {
   if (startMs && startMs > 0) body.position_ms = startMs;
 
   setStatus('idle', '切換歌曲...');
-  const pr = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + dev.id, {
-    method:  'PUT',
-    headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
-  });
 
-  if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
+  try {
+    const pr = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + dev.id, {
+      method:  'PUT',
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    });
 
-  if (pr.status === 204 || pr.status === 200) {
-    _isPaused = false;
-    setStatus('playing', '播放中');
-    _showPlayPause(true);
+    if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
-    // mode badge
-    const badgeParts = [];
-    if (startMs && startMs > 0)   badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
-    if (durationMs)                badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
-    const badge = document.getElementById('mode-badge');
-    if (badgeParts.length > 0) {
-      badge.textContent = badgeParts.join(' · ');
-      badge.classList.add('show');
+    if (pr.status === 204 || pr.status === 200) {
+      _isPaused = false;
+      setStatus('playing', '播放中');
+      _showPlayPause(true);
+
+      const badgeParts = [];
+      if (startMs && startMs > 0) badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
+      if (durationMs)              badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
+      const badge = document.getElementById('mode-badge');
+      if (badgeParts.length > 0) {
+        badge.textContent = badgeParts.join(' · ');
+        badge.classList.add('show');
+      }
+
+      if (durationMs) setTimeout(() => startTimer(durationMs), 500);
+
+      setTimeout(async () => {
+        await _fetchTrackInfo();
+        addToPlayedPlaylist(uri);
+      }, 1000);
+
+    } else {
+      setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）');
     }
-
-    if (durationMs) setTimeout(() => startTimer(durationMs), 500);
-
-    setTimeout(async () => {
-      await _fetchTrackInfo();
-      addToPlayedPlaylist(uri);
-    }, 1000);
-
-  } else {
-    setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）');
+  } catch(e) {
+    setStatus('idle', '播放請求失敗，請稍後再試');
+    console.error('playTrack error:', e);
   }
 }
 
@@ -306,7 +326,8 @@ async function doDebug() {
   const t   = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
   box.textContent += 'Token: '      + (t   ? t.substring(0, 15) + '...' : '無') + '\n';
-  box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
+  // [修正A] parseInt radix 10
+  box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp, 10) ? '是' : '已過期') : '無') + '\n';
   // runtime token：透過 getToken() 確認，同時處理 refresh
   const runtimeOk = await getToken();
   box.textContent += 'Runtime token: ' + (runtimeOk ? '有' : '無') + '\n\n';
