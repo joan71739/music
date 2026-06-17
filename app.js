@@ -307,7 +307,9 @@ async function addToPlayedPlaylist(trackUri) {
       body: JSON.stringify({ uris: [trackUri] })
     });
     const addBody = await addR.json();
-    if (addR.status !== 201) { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
+    if (addR.status === 201) {
+      showToast('✓ 已加入今日歌單')
+    }else { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
   } catch(e) { showToast('⚠ 網路錯誤'); }
 }
 
@@ -372,15 +374,6 @@ async function doDebug() {
   } catch(e) { box.textContent += '錯誤: ' + e.message; }
 }
 
-async function init() {
-  applySettingsToUI(loadSettings());
-  const ok = await handleCallback();
-  if (ok) { showView('player'); checkNFC(); return; }
-  const t = await getToken();
-  if (t) { showView('player'); checkNFC(); return; }
-  showView('login');
-}
-
 async function togglePlayedList() {
   const box = document.getElementById('played-list-box');
   if (box.style.display === 'block') { box.style.display = 'none'; return; }
@@ -407,6 +400,15 @@ async function togglePlayedList() {
   } catch(e) {
     box.innerHTML = '<div style="color:var(--muted);text-align:center">載入失敗</div>';
   }
+}
+
+async function init() {
+  applySettingsToUI(loadSettings());
+  const ok = await handleCallback();
+  if (ok) { showView('player'); checkNFC(); return; }
+  const t = await getToken();
+  if (t) { showView('player'); checkNFC(); return; }
+  showView('login');
 }
 
 init();
