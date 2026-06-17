@@ -1,0 +1,86 @@
+/**
+ * nfc.js
+ * NFC 模式專屬邏輯。
+ * 負責：播放設定（start/duration/limitMode）、URL 參數解析、NFC 觸發播放。
+ * 依賴：auth.js（getToken）、player.js（playTrack、_resetAnswer）
+ */
+
+/* ── 設定讀寫 ── */
+
+function loadSettings() {
+  const defaults = { limitMode: false, durationSec: 30, startSec: 0 };
+  const raw = localStorage.getItem('player_settings');
+  if (!raw) return defaults;
+  try { return { ...defaults, ...JSON.parse(raw) }; }
+  catch(e) { return defaults; }
+}
+
+function _saveSettings(s) {
+  localStorage.setItem('player_settings', JSON.stringify(s));
+}
+
+function applySettingsToUI(s) {
+  document.getElementById('setting-limit').checked         = s.limitMode;
+  document.getElementById('display-start').textContent     = s.startSec + ' 秒';
+  document.getElementById('display-dur').textContent       = s.durationSec + ' 秒';
+
+  const durRow = document.getElementById('row-duration');
+  if (durRow) durRow.classList.toggle('disabled', !s.limitMode);
+
+  const parts = [];
+  if (s.startSec > 0)  parts.push('從' + s.startSec + '秒');
+  if (s.limitMode)     parts.push('限時' + s.durationSec + '秒');
+
+  const el = document.getElementById('settings-summary');
+  if (el) el.textContent = parts.join(' · ');
+}
+
+function stepSetting(key, delta) {
+  const s = loadSettings();
+  if (key === 'start') s.startSec    = Math.max(0,   Math.min(600, s.startSec + delta));
+  else                 s.durationSec = Math.max(5,   Math.min(300, s.durationSec + delta));
+  _saveSettings(s);
+  applySettingsToUI(s);
+}
+
+function onLimitToggle() {
+  const s = loadSettings();
+  s.limitMode = document.getElementById('setting-limit').checked;
+  _saveSettings(s);
+  applySettingsToUI(s);
+}
+
+/* ── 設定面板展開 / 收合 ── */
+
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  const btn   = document.getElementById('settings-toggle-btn');
+  const open  = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* ── URL 參數解析（NFC/QR 帶入的參數） ── */
+
+function parsePlayParams() {
+  const params = new URLSearchParams(window.location.search);
+  const uri    = params.get('uri');
+  if (!uri) return null;
+
+  const s          = loadSettings();
+  const startMs    = params.has('start_ms')    ? parseInt(params.get('start_ms'))    : s.startSec * 1000;
+  const durationMs = params.has('duration_ms') ? parseInt(params.get('duration_ms')) : (s.limitMode ? s.durationSec * 1000 : null);
+
+  return { uri, startMs, durationMs };
+}
+
+/* ── NFC 感應觸發 ── */
+
+function checkNFC() {
+  const params = parsePlayParams();
+  if (!params) return;
+
+  // 清除 URL 參數，避免重新整理時重複播放
+  window.history.replaceState({}, '', window.location.pathname);
+
+  setTimeout(() => playTrack(params.uri, params.startMs, params.durationMs), 300);
+}
