@@ -298,7 +298,6 @@ async function addToPlayedPlaylist(trackUri) {
     const items = d.items || [];
     const exists = items.find(item => (item.item?.uri || item.track?.uri) === trackUri);
     if (exists) {
-      showToast('✓ 已在今日歌單中');
       return;
     }
     // 不存在才新增
