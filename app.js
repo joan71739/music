@@ -308,8 +308,7 @@ async function addToPlayedPlaylist(trackUri) {
       body: JSON.stringify({ uris: [trackUri] })
     });
     const addBody = await addR.json();
-    if (addR.status === 201) { showToast('✓ 已加入今日歌單'); }
-    else { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
+    if { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
   } catch(e) { showToast('⚠ 網路錯誤'); }
 }
 
