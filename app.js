@@ -288,25 +288,29 @@ function checkNFC() {
 }
 
 async function addToPlayedPlaylist(trackUri) {
-   // 同步到 Spotify 清單
   const t = await getToken(); if (!t) return;
   try {
-    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
+    // 先讀取目前歌單內容，檢查是否已存在
+    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items?limit=100`, {
+      headers: { Authorization: 'Bearer ' + t }
+    });
+    const d = await r.json();
+    const items = d.items || [];
+    const exists = items.find(item => (item.item?.uri || item.track?.uri) === trackUri);
+    if (exists) {
+      showToast('✓ 已在今日歌單中');
+      return;
+    }
+    // 不存在才新增
+    const addR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: [trackUri] })
     });
-    const body = await r.json();
-    if (r.status === 201) {
-      showToast('✓ 已加入今日歌單');
-    } else {
-      showToast('⚠ 本地已記錄，Spotify 同步失敗 ' + r.status);
-      console.warn('Spotify 清單同步失敗:', r.status, JSON.stringify(body));
-    }
-  } catch(e) {
-    showToast('⚠ 本地已記錄，網路錯誤');
-    console.error('加入清單錯誤:', e);
-  }
+    const addBody = await addR.json();
+    if (addR.status === 201) { showToast('✓ 已加入今日歌單'); }
+    else { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
+  } catch(e) { showToast('⚠ 網路錯誤'); }
 }
 
 function showToast(msg) {
