@@ -305,20 +305,20 @@ async function doDebug() {
 
   const t   = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
-  box.textContent += 'Token: '     + (t   ? t.substring(0, 15) + '...' : '無') + '\n';
-  box.textContent += 'Token 有效: '+ (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
-  // runtime token 狀態：透過 getToken() 確認，不直接存取 auth.js 私有變數
+  box.textContent += 'Token: '      + (t   ? t.substring(0, 15) + '...' : '無') + '\n';
+  box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp) ? '是' : '已過期') : '無') + '\n';
+  // runtime token：透過 getToken() 確認，同時處理 refresh
   const runtimeOk = await getToken();
   box.textContent += 'Runtime token: ' + (runtimeOk ? '有' : '無') + '\n\n';
 
   const s = loadSettings();
   box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n\n`;
 
-  if (!t) { box.textContent += '沒有 Token，請重新登入'; return; }
+  if (!runtimeOk) { box.textContent += '沒有有效 Token，請重新登入'; return; }
 
   try {
     const r = await fetch('https://api.spotify.com/v1/me/player/devices', {
-      headers: { Authorization: 'Bearer ' + t },
+      headers: { Authorization: 'Bearer ' + runtimeOk },  // 使用經過 refresh 的有效 token
     });
     box.textContent += 'API 狀態: ' + r.status + '\n';
     const d = await r.json();
