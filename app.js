@@ -308,14 +308,13 @@ async function addToPlayedPlaylist(trackUri) {
     });
     const addBody = await addR.json();
     if (addR.status === 201) {
-      showToast('✓ 已加入今日歌單')
-    }else { showToast('⚠ 同步失敗 ' + addR.status + ': ' + (addBody.error?.message || '')); }
-  } catch(e) { showToast('⚠ 網路錯誤'); }
+      showToast('已加入今日歌單')
+    } else { showToast('同步失敗 ' + addR.status + ': ' + (addBody.error?.message || ''), false); }
+  } catch(e) { showToast('網路錯誤',false); }
 }
 
-function showToast(msg) {
+function showToast(msg, isOk = true) {
   const toast = document.getElementById('played-toast');
-  const isOk = !msg || msg.startsWith('✓');
   toast.innerHTML = `<span class="toast-check" style="background:${isOk ? 'var(--green)' : '#e74c3c'}">${isOk ? '✓' : '!'}</span>${msg || '已加入今日歌單'}`;
   toast.classList.add('show');
   clearTimeout(toastTimeout);
