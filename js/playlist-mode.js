@@ -2,14 +2,23 @@
  * playlist-mode.js
  * 主題選歌模式
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
- *
  */
 
 let _playlists = [];
 let _selectedId = null;
 let _selectedName = null;
+let _selectedImg = null;
+let _selectedTotal = null;
 let _playlistsLoaded = false;
 let _dropdownOpen = false;
+
+/* ── 圓圈點擊：只做暫停 / 繼續 ── */
+
+function ringTogglePlayPause() {
+  if (_isTimerDone) return;
+  if (!document.getElementById('status-ring').classList.contains('clickable')) return;
+  _togglePlayPause();
+}
 
 /* ── 載入歌單列表 ── */
 
@@ -40,7 +49,14 @@ async function _loadPlaylists() {
     }
 
     const d = await r.json();
-    _playlists = (d.items || []).filter(p => p && p.id && p.name && p.owner && p.owner.id === myId);
+    _playlists = (d.items || [])
+      .filter(p => p && p.id && p.name && p.owner && p.owner.id === myId)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        total: p.tracks ? p.tracks.total : 0,
+        img: (p.images && p.images.length > 0) ? p.images[0].url : null,
+      }));
 
     if (_playlists.length === 0) {
       if (trigger) trigger.textContent = '找不到自己建立的歌單';
@@ -48,7 +64,7 @@ async function _loadPlaylists() {
     }
 
     _playlistsLoaded = true;
-    if (trigger) trigger.textContent = '尚未選擇主題包';
+    if (trigger) trigger.textContent = '選擇主題歌單';
     _renderDropdown();
 
   } catch (e) {
@@ -63,51 +79,92 @@ function _renderDropdown() {
   if (!listEl) return;
 
   listEl.innerHTML = _playlists.map(p => `
-    <div class="pl-option" onclick="selectPlaylist('${p.id}', '${_esc(p.name)}')">
-      <div class="pl-option-name">${_esc(p.name)}</div>
-      <div class="pl-option-meta">${p.tracks ? p.tracks.total + ' 首' : ''}</div>
+    <div class="pl-option" onclick="selectPlaylist('${p.id}', '${_esc(p.name)}', '${p.img || ''}', ${p.total})">
+      <div class="pl-option-img">
+        ${p.img
+      ? `<img src="${p.img}" alt="" width="36" height="36" style="border-radius:6px;display:block;">`
+      : `<i class="ti ti-music" aria-hidden="true" style="font-size:18px;color:#555;"></i>`
+    }
+      </div>
+      <div class="pl-option-info">
+        <div class="pl-option-name">${_esc(p.name)}</div>
+        <div class="pl-option-meta">${p.total} 首</div>
+      </div>
+      ${p.id === _selectedId ? `<i class="ti ti-check pl-option-check" aria-hidden="true"></i>` : ''}
     </div>
   `).join('');
 }
 
-/* ── 展開 / 收合下拉 ── */
+/* ── 展開 / 收合下拉（觸發器 or 已選卡片都呼叫這個） ── */
 
 function toggleDropdown() {
   if (!_playlistsLoaded) return;
   _dropdownOpen = !_dropdownOpen;
+
   const listEl = document.getElementById('playlist-list');
-  const arrow = document.getElementById('pl-arrow');
   const trigger = document.getElementById('pl-trigger');
+  const card = document.getElementById('pl-selected-card');
+  const arrow = document.getElementById('pl-arrow');
+  const cardArrow = document.getElementById('pl-sel-arrow');
+
   if (listEl) listEl.classList.toggle('open', _dropdownOpen);
-  if (arrow) arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
-  if (trigger) trigger.classList.toggle('open', _dropdownOpen);
+
+  if (trigger && trigger.style.display !== 'none') {
+    if (arrow) arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
+    trigger.classList.toggle('open', _dropdownOpen);
+  }
+
+  if (card && card.style.display !== 'none') {
+    card.classList.toggle('open', _dropdownOpen);
+    if (cardArrow) cardArrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
+  }
 }
 
 /* ── 選擇歌單 ── */
 
-function selectPlaylist(id, name) {
+function selectPlaylist(id, name, img, total) {
   _selectedId = id;
   _selectedName = name;
-
-  const triggerText = document.getElementById('pl-trigger-text');
-  if (triggerText) triggerText.textContent = name;
+  _selectedImg = img || null;
+  _selectedTotal = total || 0;
 
   _dropdownOpen = false;
-  const listEl = document.getElementById('playlist-list');
-  const arrow = document.getElementById('pl-arrow');
+
   const trigger = document.getElementById('pl-trigger');
-  if (listEl) listEl.classList.remove('open');
-  if (arrow) arrow.style.transform = '';
-  if (trigger) trigger.classList.remove('open');
-
-  const statusText = document.getElementById('status-text');
-  if (statusText) statusText.textContent = '點「下一首」開始隨機播放';
-
+  const listEl = document.getElementById('playlist-list');
   const btnNext = document.getElementById('btn-next');
+  const card = document.getElementById('pl-selected-card');
+  const cardArrow = document.getElementById('pl-sel-arrow');
+
+  if (listEl) listEl.classList.remove('open');
+
+  if (trigger) trigger.style.display = 'none';
+
+  if (card) {
+    card.style.display = 'flex';
+    card.classList.remove('open');
+    if (cardArrow) cardArrow.style.transform = '';
+
+    document.getElementById('pl-sel-img-wrap').innerHTML = _selectedImg
+      ? `<img src="${_selectedImg}" alt="" width="36" height="36" style="border-radius:6px;display:block;">`
+      : `<i class="ti ti-music" aria-hidden="true" style="font-size:18px;color:#1DB954;"></i>`;
+    document.getElementById('pl-sel-name').textContent = name;
+    document.getElementById('pl-sel-meta').textContent = `${_selectedTotal} 首`;
+  }
+
   if (btnNext) btnNext.style.display = 'block';
+
+  _renderDropdown();
+
+  const ring = document.getElementById('status-ring');
+  const statusText = document.getElementById('status-text');
+  const ringIcon = document.getElementById('status-ring-icon');
+  if (ring) ring.classList.add('clickable');
+  if (statusText) statusText.textContent = '點圓圈隨機播放';
+  if (ringIcon) ringIcon.className = 'ti ti-music';
 }
 
-/* ── 隨機播一首（只由 btn-next 觸發） ── */
+/* ── 隨機播一首 ── */
 
 async function playFromPlaylist() {
   if (!_selectedId) return;
@@ -153,6 +210,8 @@ async function playFromPlaylist() {
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
 
     await playTrack(track.uri, startMs, durationMs);
+
+    if (ring) ring.classList.add('clickable');
 
   } catch (e) {
     setStatus('idle', '錯誤：' + e.message);

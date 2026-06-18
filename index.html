@@ -51,13 +51,33 @@
 
       <!-- 主題選歌：Dropdown（playlist-mode.js 控制） -->
       <div id="playlist-mode-panel">
+
+        <!-- 觸發器（未選擇時顯示） -->
         <button id="pl-trigger" onclick="toggleDropdown()">
-          <span id="pl-trigger-text">尚未選擇主題包</span>
+          <div id="pl-trigger-left">
+            <i class="ti ti-music" id="pl-trigger-icon" aria-hidden="true"></i>
+            <span id="pl-trigger-text">選擇主題歌單</span>
+          </div>
           <span id="pl-arrow">▾</span>
         </button>
+
+        <!-- 下拉清單（觸發器 & 已選卡片共用） -->
         <div id="playlist-list"></div>
+
+        <!-- 已選擇卡片（點了直接展開下拉重選，預設隱藏） -->
+        <div id="pl-selected-card" onclick="toggleDropdown()">
+          <div id="pl-sel-img-wrap"></div>
+          <div id="pl-sel-info">
+            <div id="pl-sel-name"></div>
+            <div id="pl-sel-meta"></div>
+          </div>
+          <span id="pl-sel-arrow">▾</span>
+        </div>
+
+        <!-- 下一首按鈕 -->
         <button class="btn-green" id="btn-next" style="display:none; width:100%; margin-top:0.8rem;"
           onclick="playFromPlaylist()">下一首</button>
+
       </div>
 
       <!-- 狀態圓環（共用） -->
