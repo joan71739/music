@@ -51,22 +51,38 @@
   opacity: 1;
   pointer-events: auto;
 }
-#answer-hidden:hover { background: #222; }
+
+#answer-hidden:hover {
+  background: #222;
+}
 
 #answer-revealed {
-  background: rgba(29,185,84,0.09);
-  border-bottom: 1px solid rgba(29,185,84,0.2);
+  background: rgba(29, 185, 84, 0.09);
+  border-bottom: 1px solid rgba(29, 185, 84, 0.2);
   opacity: 0;
   pointer-events: none;
 }
+
 #answer-revealed.show {
   opacity: 1;
   pointer-events: auto;
   animation: fadeIn 0.35s ease;
 }
-#answer-hidden.hide { opacity: 0; pointer-events: none; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+#answer-hidden.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
 
 #answer-placeholder {
   font-size: 36px;
@@ -74,7 +90,12 @@
   color: #484848;
   letter-spacing: 8px;
 }
-#answer-tap-hint { font-size: 14px; color: #555; }
+
+#answer-tap-hint {
+  font-size: 14px;
+  color: #555;
+}
+
 #answer-song-name {
   font-size: 30px;
   font-weight: 700;
@@ -82,8 +103,15 @@
   line-height: 1.3;
   padding: 0 1rem;
 }
-#answer-artist-name { font-size: 15px; color: #1a9645; }
-#answer-divider { display: none; }
+
+#answer-artist-name {
+  font-size: 15px;
+  color: #1a9645;
+}
+
+#answer-divider {
+  display: none;
+}
 
 /* ── 狀態圓環 ── */
 .status-area {
@@ -120,17 +148,34 @@
   cursor: default;
   flex-shrink: 0;
 }
-#status-ring.clickable { cursor: pointer; }
-#status-ring.clickable:active { transform: scale(0.95); }
+
+#status-ring.clickable {
+  cursor: pointer;
+}
+
+#status-ring.clickable:active {
+  transform: scale(0.95);
+}
+
 #status-ring.playing {
   border-color: #1DB954;
   animation: breathe 1.6s ease-in-out infinite;
 }
-#status-ring.ended { border-color: rgba(29,185,84,0.2); }
+
+#status-ring.ended {
+  border-color: rgba(29, 185, 84, 0.2);
+}
 
 @keyframes breathe {
-  0%, 100% { border-color: rgba(29,185,84,0.25); }
-  50%       { border-color: rgba(29,185,84,1); }
+
+  0%,
+  100% {
+    border-color: rgba(29, 185, 84, 0.25);
+  }
+
+  50% {
+    border-color: rgba(29, 185, 84, 1);
+  }
 }
 
 #status-ring-icon {
@@ -138,20 +183,29 @@
   color: #2e2e2e;
   transition: color 0.4s;
 }
-#status-ring.playing #status-ring-icon { color: #1DB954; }
-#status-ring.ended   #status-ring-icon { color: rgba(29,185,84,0.35); }
+
+#status-ring.playing #status-ring-icon {
+  color: #1DB954;
+}
+
+#status-ring.ended #status-ring-icon {
+  color: rgba(29, 185, 84, 0.35);
+}
 
 /* ── 膠囊提示 ── */
 #ring-pill {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid #1e1e1e;
   border-radius: 20px;
   padding: 4px 12px;
 }
-#status-ring.playing #ring-pill { border-color: rgba(29,185,84,0.2); }
+
+#status-ring.playing #ring-pill {
+  border-color: rgba(29, 185, 84, 0.2);
+}
 
 #ring-pill-dot {
   width: 5px;
@@ -159,19 +213,45 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-#status-ring.playing #ring-pill-dot { background: #1DB954; animation: dpulse 1.4s infinite; }
-#status-ring.ended   #ring-pill-dot { background: #333; }
 
-@keyframes dpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+#status-ring.playing #ring-pill-dot {
+  background: #1DB954;
+  animation: dpulse 1.4s infinite;
+}
 
-#ring-pill-state  { font-size: 11px; color: #555; }
-#ring-pill-action { font-size: 11px; font-weight: 600; }
-#status-ring.playing #ring-pill-action { color: rgba(29,185,84,0.7); }
-#status-ring.ended   #ring-pill-action { color: rgba(29,185,84,0.4); }
+#status-ring.ended #ring-pill-dot {
+  background: #333;
+}
 
-/* 隱藏不用的舊元素 */
-.ring-bar          { display: none !important; }
-#playing-indicator { display: none !important; }
+@keyframes dpulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+#ring-pill-state {
+  font-size: 11px;
+  color: #555;
+}
+
+#ring-pill-action {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#status-ring.playing #ring-pill-action {
+  color: rgba(29, 185, 84, 0.7);
+}
+
+#status-ring.ended #ring-pill-action {
+  color: rgba(29, 185, 84, 0.4);
+}
 
 /* ── Mode badge ── */
 #mode-badge {
@@ -183,7 +263,10 @@
   padding: 3px 10px;
   margin-bottom: 1rem;
 }
-#mode-badge.show { display: inline-block; }
+
+#mode-badge.show {
+  display: inline-block;
+}
 
 /* ── 計時器 ── */
 #timer-wrap {
@@ -192,7 +275,10 @@
   max-width: 360px;
   margin-bottom: 1.2rem;
 }
-#timer-wrap.show { display: block; }
+
+#timer-wrap.show {
+  display: block;
+}
 
 #timer-bar-bg {
   width: 100%;
@@ -201,6 +287,7 @@
   border-radius: 2px;
   overflow: hidden;
 }
+
 #timer-bar {
   height: 100%;
   background: var(--green);
@@ -208,6 +295,7 @@
   transform-origin: left;
   transition: none;
 }
+
 #timer-label {
   font-size: 12px;
   color: var(--muted);
@@ -255,13 +343,25 @@
   display: none;
   border: 1px solid var(--border);
 }
+
 #played-list-box .played-item {
   padding: 0.4rem 0;
   border-bottom: 1px solid var(--border);
 }
-#played-list-box .played-item:last-child { border-bottom: none; }
-#played-list-box .played-song  { color: var(--text);  font-size: 13px; }
-#played-list-box .played-artist{ color: var(--muted); font-size: 11px; }
+
+#played-list-box .played-item:last-child {
+  border-bottom: none;
+}
+
+#played-list-box .played-song {
+  color: var(--text);
+  font-size: 13px;
+}
+
+#played-list-box .played-artist {
+  color: var(--muted);
+  font-size: 11px;
+}
 
 /* ── Toast ── */
 #played-toast {
@@ -280,10 +380,13 @@
   z-index: 1000;
   display: flex;
   align-items: center;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-#played-toast.show { top: 24px; }
+
+#played-toast.show {
+  top: 24px;
+}
 
 .toast-check {
   background: var(--green);

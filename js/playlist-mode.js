@@ -2,6 +2,10 @@
  * playlist-mode.js
  * 主題選歌模式
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
+ *
+ * 修正說明：
+ * - ringTogglePlayPause() 不再觸發 playFromPlaylist()
+ *   圓圈只負責暫停/繼續，下一首只由 btn-next 按鈕觸發
  */
 
 let _playlists = [];
@@ -10,14 +14,9 @@ let _selectedName = null;
 let _playlistsLoaded = false;
 let _dropdownOpen = false;
 
-/* ── 圓圈點擊：主題模式下觸發播放 ── */
+/* ── 圓圈點擊：只做暫停 / 繼續 ── */
 
 function ringTogglePlayPause() {
-  if (_selectedId) {
-    playFromPlaylist();
-    return;
-  }
-  // 沒選歌單時，走原本暫停/繼續邏輯
   if (_isTimerDone) return;
   if (!document.getElementById('status-ring').classList.contains('clickable')) return;
   _togglePlayPause();
@@ -114,20 +113,16 @@ function selectPlaylist(id, name) {
   if (arrow) arrow.style.transform = '';
   if (trigger) trigger.classList.remove('open');
 
-  // 圓圈變可點擊
-  const ring = document.getElementById('status-ring');
+  // 更新提示文字
   const statusText = document.getElementById('status-text');
-  const ringIcon = document.getElementById('status-ring-icon');
-  if (ring) ring.classList.add('clickable');
-  if (statusText) statusText.textContent = '點圓圈隨機播放';
-  if (ringIcon) ringIcon.className = 'ti ti-music';
+  if (statusText) statusText.textContent = '點「下一首」開始隨機播放';
 
   // 顯示下一首按鈕
   const btnNext = document.getElementById('btn-next');
   if (btnNext) btnNext.style.display = 'block';
 }
 
-/* ── 隨機播一首 ── */
+/* ── 隨機播一首（只由 btn-next 觸發） ── */
 
 async function playFromPlaylist() {
   if (!_selectedId) return;

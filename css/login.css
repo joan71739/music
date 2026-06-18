@@ -29,27 +29,17 @@
 }
 
 /* ── 登入頁 icon 變體 ── */
-.icon-gold {
-  font-size: 80px;
-  color: #FFD700;
-  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.3));
-}
-
-.icon-green-glow {
-  font-size: 80px;
-  color: var(--green);
-  filter: drop-shadow(0 0 16px rgba(29, 185, 84, 0.4));
-}
-
 .icon-layered {
   position: relative;
   width: 80px;
   height: 80px;
 }
+
 .icon-layered .ti-vinyl {
   font-size: 80px;
   color: var(--green);
 }
+
 .icon-layered .ti-nfc {
   position: absolute;
   bottom: -4px;

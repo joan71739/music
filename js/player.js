@@ -4,13 +4,13 @@
  * 依賴：auth.js（getToken）、history.js（addToPlayedPlaylist）
  */
 
-let currentTrackName  = '';
+let currentTrackName = '';
 let currentArtistName = '';
 
-let _timerHandle    = null;
-let _tickHandle     = null;
-let _isTimerDone    = false;
-let _isPaused       = false;
+let _timerHandle = null;
+let _tickHandle = null;
+let _isTimerDone = false;
+let _isPaused = false;
 let _timerRemaining = 0;   // ms
 let _timerStartedAt = 0;
 
@@ -19,39 +19,39 @@ let _isRevealed = false;
 /* ── View 切換 ── */
 
 function showView(name) {
-  document.getElementById('login-view').style.display  = name === 'login'  ? 'block' : 'none';
-  document.getElementById('player-view').style.display = name === 'player' ? 'flex'  : 'none';
+  document.getElementById('login-view').style.display = name === 'login' ? 'block' : 'none';
+  document.getElementById('player-view').style.display = name === 'player' ? 'flex' : 'none';
 }
 
 /* ── 狀態圓環 ── */
 
 function setStatus(state, text) {
-  const ring    = document.getElementById('status-ring');
-  const icon    = document.getElementById('status-ring-icon');
-  const pill    = document.getElementById('ring-pill');
-  const pState  = document.getElementById('ring-pill-state');
+  const ring = document.getElementById('status-ring');
+  const icon = document.getElementById('status-ring-icon');
+  const pill = document.getElementById('ring-pill');
+  const pState = document.getElementById('ring-pill-state');
   const pAction = document.getElementById('ring-pill-action');
 
   ring.classList.remove('playing', 'ended');
 
   if (state === 'playing') {
     ring.classList.add('playing');
-    icon.className      = 'ti ti-music';
-    pill.style.display  = 'flex';
-    pState.textContent  = '播放中 · ';
+    icon.className = 'ti ti-music';
+    pill.style.display = 'flex';
+    pState.textContent = '播放中 · ';
     pAction.textContent = '點我暫停';
   } else if (state === 'paused') {
     ring.classList.add('ended');
-    icon.className      = 'ti ti-player-pause';
-    pill.style.display  = 'flex';
-    pState.textContent  = '已暫停 · ';
+    icon.className = 'ti ti-player-pause';
+    pill.style.display = 'flex';
+    pState.textContent = '已暫停 · ';
     pAction.textContent = '點我繼續';
   } else if (state === 'ended') {
     ring.classList.add('ended');
-    icon.className     = 'ti ti-player-pause';
+    icon.className = 'ti ti-player-pause';
     pill.style.display = 'none';
   } else {
-    icon.className     = 'ti ti-nfc';
+    icon.className = 'ti ti-nfc';
     pill.style.display = 'none';
   }
 
@@ -61,7 +61,7 @@ function setStatus(state, text) {
 function _showPlayPause(show) {
   const ring = document.getElementById('status-ring');
   if (show) ring.classList.add('clickable');
-  else      ring.classList.remove('clickable');
+  else ring.classList.remove('clickable');
 }
 
 /** 圓環點擊：切換播放/暫停 */
@@ -118,10 +118,10 @@ function _resumeTimer() {
 function _runTimer(durationMs) {
   clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
-  _timerRemaining  = durationMs;
-  _timerStartedAt  = Date.now();
+  _timerRemaining = durationMs;
+  _timerStartedAt = Date.now();
 
-  const bar   = document.getElementById('timer-bar');
+  const bar = document.getElementById('timer-bar');
   const label = document.getElementById('timer-label');
 
   requestAnimationFrame(() => {
@@ -142,7 +142,7 @@ function _runTimer(durationMs) {
 
   _timerHandle = setTimeout(async () => {
     clearInterval(_tickHandle);
-    _isTimerDone    = true;
+    _isTimerDone = true;
     _timerStartedAt = 0;
     _showPlayPause(false);
 
@@ -167,8 +167,8 @@ function startTimer(durationMs) {
 function _resetTimer() {
   clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
-  _isTimerDone    = false;
-  _isPaused       = false;
+  _isTimerDone = false;
+  _isPaused = false;
   _timerRemaining = 0;
   _timerStartedAt = 0;
   _showPlayPause(false);
@@ -183,11 +183,11 @@ function _resetTimer() {
 
 function toggleReveal() {
   _isRevealed = !_isRevealed;
-  const hidden   = document.getElementById('answer-hidden');
+  const hidden = document.getElementById('answer-hidden');
   const revealed = document.getElementById('answer-revealed');
 
   if (_isRevealed) {
-    document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
+    document.getElementById('answer-song-name').textContent = currentTrackName || '（未知歌曲）';
     document.getElementById('answer-artist-name').textContent = currentArtistName || '';
     hidden.classList.add('hide');
     revealed.classList.add('show');
@@ -201,9 +201,9 @@ function _resetAnswer() {
   _isRevealed = false;
   document.getElementById('answer-hidden').classList.remove('hide');
   document.getElementById('answer-revealed').classList.remove('show');
-  document.getElementById('answer-song-name').textContent   = '';
+  document.getElementById('answer-song-name').textContent = '';
   document.getElementById('answer-artist-name').textContent = '';
-  currentTrackName  = '';
+  currentTrackName = '';
   currentArtistName = '';
 }
 
@@ -221,11 +221,11 @@ async function _fetchTrackInfo() {
     if (r.status === 200) {
       const d = await r.json();
       if (d && d.item) {
-        currentTrackName  = d.item.name;
+        currentTrackName = d.item.name;
         currentArtistName = d.item.artists.map(a => a.name).join(', ');
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.error('_fetchTrackInfo error:', e);
   }
 }
@@ -259,7 +259,7 @@ async function playTrack(uri, startMs, durationMs) {
     if (!dr.ok) { setStatus('idle', `裝置查詢失敗（${dr.status}），請稍後再試`); return; }
     const dd = await dr.json();
     devices = dd.devices || [];
-  } catch(e) {
+  } catch (e) {
     setStatus('idle', '網路錯誤，請確認連線');
     console.error('devices fetch error:', e);
     return;
@@ -270,7 +270,7 @@ async function playTrack(uri, startMs, durationMs) {
     return;
   }
 
-  const dev  = devices.find(d => d.is_active) || devices[0];
+  const dev = devices.find(d => d.is_active) || devices[0];
   const body = { uris: [uri] };
   if (startMs && startMs > 0) body.position_ms = startMs;
 
@@ -278,13 +278,13 @@ async function playTrack(uri, startMs, durationMs) {
 
   try {
     const pr = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + dev.id, {
-      method:  'PUT',
+      method: 'PUT',
       headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
+      body: JSON.stringify(body),
     });
 
     if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
-    
+
     if (pr.status === 204 || pr.status === 200) {
       _isPaused = false;
       setStatus('playing', '播放中');
@@ -292,7 +292,7 @@ async function playTrack(uri, startMs, durationMs) {
 
       const badgeParts = [];
       if (startMs && startMs > 0) badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
-      if (durationMs)              badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
+      if (durationMs) badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
       const badge = document.getElementById('mode-badge');
       if (badgeParts.length > 0) {
         badge.textContent = badgeParts.join(' · ');
@@ -309,7 +309,7 @@ async function playTrack(uri, startMs, durationMs) {
     } else {
       setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）');
     }
-  } catch(e) {
+  } catch (e) {
     setStatus('idle', '播放請求失敗，請稍後再試');
     console.error('playTrack error:', e);
   }
@@ -323,9 +323,9 @@ async function doDebug() {
   box.style.display = 'block';
   box.textContent = '測試中...\n';
 
-  const t   = localStorage.getItem('spotify_token');
+  const t = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
-  box.textContent += 'Token: '      + (t   ? t.substring(0, 15) + '...' : '無') + '\n';
+  box.textContent += 'Token: ' + (t ? t.substring(0, 15) + '...' : '無') + '\n';
   // [修正A] parseInt radix 10
   box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp, 10) ? '是' : '已過期') : '無') + '\n';
   // runtime token：透過 getToken() 確認，同時處理 refresh
@@ -348,7 +348,13 @@ async function doDebug() {
       box.textContent += `- ${dev.name} (${dev.type}) 活躍:${dev.is_active}\n`;
     });
     if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';
-  } catch(e) {
+  } catch (e) {
     box.textContent += '錯誤: ' + e.message;
   }
 }
+
+
+// player.js 底部新增
+function isPlaying() { return !_isPaused && !_isTimerDone; }
+function isPaused() { return _isPaused && !_isTimerDone; }
+function isTimerDone() { return _isTimerDone; }
