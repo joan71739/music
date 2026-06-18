@@ -3,9 +3,6 @@
  * 主題選歌模式
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  *
- * 修正說明：
- * - ringTogglePlayPause() 不再觸發 playFromPlaylist()
- *   圓圈只負責暫停/繼續，下一首只由 btn-next 按鈕觸發
  */
 
 let _playlists = [];
@@ -13,14 +10,6 @@ let _selectedId = null;
 let _selectedName = null;
 let _playlistsLoaded = false;
 let _dropdownOpen = false;
-
-/* ── 圓圈點擊：只做暫停 / 繼續 ── */
-
-function ringTogglePlayPause() {
-  if (_isTimerDone) return;
-  if (!document.getElementById('status-ring').classList.contains('clickable')) return;
-  _togglePlayPause();
-}
 
 /* ── 載入歌單列表 ── */
 
@@ -100,11 +89,9 @@ function selectPlaylist(id, name) {
   _selectedId = id;
   _selectedName = name;
 
-  // 更新觸發器文字
   const triggerText = document.getElementById('pl-trigger-text');
   if (triggerText) triggerText.textContent = name;
 
-  // 收合下拉
   _dropdownOpen = false;
   const listEl = document.getElementById('playlist-list');
   const arrow = document.getElementById('pl-arrow');
@@ -113,11 +100,9 @@ function selectPlaylist(id, name) {
   if (arrow) arrow.style.transform = '';
   if (trigger) trigger.classList.remove('open');
 
-  // 更新提示文字
   const statusText = document.getElementById('status-text');
   if (statusText) statusText.textContent = '點「下一首」開始隨機播放';
 
-  // 顯示下一首按鈕
   const btnNext = document.getElementById('btn-next');
   if (btnNext) btnNext.style.display = 'block';
 }
