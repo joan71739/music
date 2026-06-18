@@ -4,50 +4,20 @@
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  */
 
-let _playlists       = [];
-let _selectedId      = null;
-let _selectedName    = null;
+let _playlists = [];
+let _selectedId = null;
+let _selectedName = null;
 let _playlistsLoaded = false;
-let _dropdownOpen    = false;
-
-/* ── Tab 切換 ── */
-
-function switchModeTab(tab) {
-  const nfcBtn     = document.getElementById('tab-btn-nfc');
-  const plBtn      = document.getElementById('tab-btn-playlist');
-  const plPanel    = document.getElementById('playlist-mode-panel');
-  const statusText = document.getElementById('status-text');
-  const ringIcon   = document.getElementById('status-ring-icon');
-  const ring       = document.getElementById('status-ring');
-
-  if (tab === 'nfc') {
-    nfcBtn.classList.add('active');
-    plBtn.classList.remove('active');
-    plPanel.style.display = 'none';
-    if (ringIcon)   ringIcon.className = 'ti ti-nfc';
-    if (statusText) statusText.textContent = '靠近 NFC 卡開始播放';
-    if (ring)       ring.classList.remove('clickable');
-  } else {
-    plBtn.classList.add('active');
-    nfcBtn.classList.remove('active');
-    plPanel.style.display = 'block';
-    if (ringIcon)   ringIcon.className = 'ti ti-music';
-    if (statusText) statusText.textContent = _selectedId ? '點圓圈隨機播放' : '請先選擇主題包';
-    if (ring)       ring.classList.toggle('clickable', !!_selectedId);
-    if (!_playlistsLoaded) _loadPlaylists();
-  }
-}
+let _dropdownOpen = false;
 
 /* ── 圓圈點擊：主題模式下觸發播放 ── */
 
 function ringTogglePlayPause() {
-  const tab = document.getElementById('tab-btn-playlist');
-  // 判斷目前是否在主題選歌 tab
-  if (tab && tab.classList.contains('active')) {
-    if (_selectedId) playFromPlaylist();
+  if (_selectedId) {
+    playFromPlaylist();
     return;
   }
-  // NFC 模式走原本邏輯
+  // 沒選歌單時，走原本暫停/繼續邏輯
   if (_isTimerDone) return;
   if (!document.getElementById('status-ring').classList.contains('clickable')) return;
   _togglePlayPause();
@@ -117,18 +87,18 @@ function _renderDropdown() {
 function toggleDropdown() {
   if (!_playlistsLoaded) return;
   _dropdownOpen = !_dropdownOpen;
-  const listEl  = document.getElementById('playlist-list');
-  const arrow   = document.getElementById('pl-arrow');
+  const listEl = document.getElementById('playlist-list');
+  const arrow = document.getElementById('pl-arrow');
   const trigger = document.getElementById('pl-trigger');
-  if (listEl)  listEl.classList.toggle('open', _dropdownOpen);
-  if (arrow)   arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
+  if (listEl) listEl.classList.toggle('open', _dropdownOpen);
+  if (arrow) arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
   if (trigger) trigger.classList.toggle('open', _dropdownOpen);
 }
 
 /* ── 選擇歌單 ── */
 
 function selectPlaylist(id, name) {
-  _selectedId   = id;
+  _selectedId = id;
   _selectedName = name;
 
   // 更新觸發器文字
@@ -137,20 +107,24 @@ function selectPlaylist(id, name) {
 
   // 收合下拉
   _dropdownOpen = false;
-  const listEl  = document.getElementById('playlist-list');
-  const arrow   = document.getElementById('pl-arrow');
+  const listEl = document.getElementById('playlist-list');
+  const arrow = document.getElementById('pl-arrow');
   const trigger = document.getElementById('pl-trigger');
-  if (listEl)  listEl.classList.remove('open');
-  if (arrow)   arrow.style.transform = '';
+  if (listEl) listEl.classList.remove('open');
+  if (arrow) arrow.style.transform = '';
   if (trigger) trigger.classList.remove('open');
 
   // 圓圈變可點擊
-  const ring       = document.getElementById('status-ring');
+  const ring = document.getElementById('status-ring');
   const statusText = document.getElementById('status-text');
-  const ringIcon   = document.getElementById('status-ring-icon');
-  if (ring)       ring.classList.add('clickable');
+  const ringIcon = document.getElementById('status-ring-icon');
+  if (ring) ring.classList.add('clickable');
   if (statusText) statusText.textContent = '點圓圈隨機播放';
-  if (ringIcon)   ringIcon.className = 'ti ti-music';
+  if (ringIcon) ringIcon.className = 'ti ti-music';
+
+  // 顯示下一首按鈕
+  const btnNext = document.getElementById('btn-next');
+  if (btnNext) btnNext.style.display = 'block';
 }
 
 /* ── 隨機播一首 ── */
@@ -195,7 +169,7 @@ async function playFromPlaylist() {
 
     const track = tracks[Math.floor(Math.random() * tracks.length)];
     const s = loadSettings();
-    const startMs    = s.startSec * 1000;
+    const startMs = s.startSec * 1000;
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
 
     await playTrack(track.uri, startMs, durationMs);

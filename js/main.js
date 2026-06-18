@@ -13,6 +13,7 @@ async function init() {
   const callbackOk = await handleCallback();
   if (callbackOk) {
     showView('player');
+    _loadPlaylists();
     checkNFC();
     return;
   }
@@ -21,6 +22,7 @@ async function init() {
   const t = await getToken();
   if (t) {
     showView('player');
+    _loadPlaylists();
     checkNFC();
     return;
   }
