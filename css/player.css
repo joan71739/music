@@ -401,3 +401,29 @@
   font-weight: 800;
   font-size: 11px;
 }
+
+/* ── 下一首浮鈕（貼在圓環底部） ── */
+#btn-next {
+  display: none;
+  position: absolute;
+  bottom: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 3px solid var(--bg);
+  color: #000;
+  font-size: 22px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+#btn-next:hover {
+  opacity: 0.88;
+}
+
+#btn-next:active {
+  transform: scale(0.94);
+}

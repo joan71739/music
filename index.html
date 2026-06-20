@@ -49,49 +49,55 @@
     <!-- Play body -->
     <div id="play-body">
 
-      <!-- 主題選歌：Dropdown（playlist-mode.js 控制） -->
+      <!-- 主題選歌：膠囊 + 格狀選單（playlist-mode.js 控制） -->
+
       <div id="playlist-mode-panel">
 
-        <!-- 觸發器（未選擇時顯示） -->
-        <button id="pl-trigger" onclick="toggleDropdown()">
-          <div id="pl-trigger-left">
-            <i class="ti ti-music" id="pl-trigger-icon" aria-hidden="true"></i>
-            <span id="pl-trigger-text">選擇主題歌單</span>
+        <div id="pl-capsule-empty" onclick="toggleDropdown()">
+          <div id="pl-capsule-empty-dot">
+            <i class="ti ti-music" aria-hidden="true"></i>
           </div>
-          <span id="pl-arrow">▾</span>
-        </button>
-
-        <!-- 下拉清單（觸發器 & 已選卡片共用） -->
-        <div id="playlist-list"></div>
-
-        <!-- 已選擇卡片（點了直接展開下拉重選，預設隱藏） -->
-        <div id="pl-selected-card" onclick="toggleDropdown()">
-          <div id="pl-sel-img-wrap"></div>
-          <div id="pl-sel-info">
-            <div id="pl-sel-name"></div>
-            <div id="pl-sel-meta"></div>
-          </div>
-          <span id="pl-sel-arrow">▾</span>
+          <span id="pl-capsule-empty-text">選擇主題歌單</span>
+          <span id="pl-capsule-empty-arr">▾</span>
         </div>
 
-        <!-- 下一首按鈕 -->
-        <button class="btn-green" id="btn-next" style="display:none; width:100%; margin-top:0.8rem;"
-          onclick="playFromPlaylist()">下一首</button>
+        <div id="pl-capsule-sel" onclick="toggleDropdown()">
+          <div id="pl-capsule-sel-dot">
+            <i class="ti ti-music" aria-hidden="true"></i>
+          </div>
+          <span id="pl-capsule-sel-name"></span>
+          <span id="pl-capsule-sel-arr">▾</span>
+        </div>
+
+        <div id="playlist-grid-sheet">
+          <div id="playlist-grid"></div>
+        </div>
 
       </div>
+
 
       <!-- 狀態圓環（共用） -->
+
       <div class="status-area">
-        <div id="status-ring" onclick="ringTogglePlayPause()">
-          <i id="status-ring-icon" class="ti ti-nfc" aria-hidden="true"></i>
-          <div id="ring-pill" style="display:none">
-            <div id="ring-pill-dot"></div>
-            <span id="ring-pill-state"></span>
-            <span id="ring-pill-action"></span>
+        <div style="position:relative; display:inline-flex; flex-direction:column; align-items:center;">
+
+          <div id="status-ring" onclick="ringTogglePlayPause()">
+            <i id="status-ring-icon" class="ti ti-nfc" aria-hidden="true"></i>
+            <div id="ring-pill" style="display:none">
+              <div id="ring-pill-dot"></div>
+              <span id="ring-pill-state"></span>
+              <span id="ring-pill-action"></span>
+            </div>
           </div>
+
+          <button id="btn-next" onclick="playFromPlaylist()" aria-label="下一首">
+            <i class="ti ti-player-skip-forward" aria-hidden="true"></i>
+          </button>
+
         </div>
-        <div id="status-text">靠近 NFC 卡開始播放</div>
+        <div id="status-text" style="margin-top:1.8rem;">靠近 NFC 卡開始播放</div>
       </div>
+
 
       <div id="playing-indicator"></div>
       <div id="mode-badge"></div>

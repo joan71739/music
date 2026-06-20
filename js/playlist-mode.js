@@ -1,6 +1,6 @@
 /**
- * playlist-mode.js
- * 主題選歌模式
+ * playlist-mode.js  v3
+ * 主題選歌模式：膠囊 + 格狀選單（橫式格）
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  */
 
@@ -12,23 +12,15 @@ let _selectedTotal = null;
 let _playlistsLoaded = false;
 let _dropdownOpen = false;
 
-/* ── 圓圈點擊：只做暫停 / 繼續 ── */
-
-function ringTogglePlayPause() {
-  if (_isTimerDone) return;
-  if (!document.getElementById('status-ring').classList.contains('clickable')) return;
-  _togglePlayPause();
-}
-
 /* ── 載入歌單列表 ── */
 
 async function _loadPlaylists() {
-  const trigger = document.getElementById('pl-trigger-text');
-  if (trigger) trigger.textContent = '載入中...';
+  const emptyText = document.getElementById('pl-capsule-empty-text');
+  if (emptyText) emptyText.textContent = '載入中...';
 
   const t = await getToken();
   if (!t) {
-    if (trigger) trigger.textContent = '請重新登入';
+    if (emptyText) emptyText.textContent = '請重新登入';
     return;
   }
 
@@ -44,12 +36,11 @@ async function _loadPlaylists() {
     });
 
     if (!r.ok) {
-      if (trigger) trigger.textContent = '載入失敗（' + r.status + '）';
+      if (emptyText) emptyText.textContent = '載入失敗（' + r.status + '）';
       return;
     }
 
     const d = await r.json();
-    console.log('playlists raw:', JSON.stringify(d.items?.[0], null, 2));
     _playlists = (d.items || [])
       .filter(p => p && p.id && p.name && p.owner && p.owner.id === myId)
       .map(p => ({
@@ -60,65 +51,53 @@ async function _loadPlaylists() {
       }));
 
     if (_playlists.length === 0) {
-      if (trigger) trigger.textContent = '找不到自己建立的歌單';
+      if (emptyText) emptyText.textContent = '找不到自己建立的歌單';
       return;
     }
 
     _playlistsLoaded = true;
-    if (trigger) trigger.textContent = '選擇主題歌單';
-    _renderDropdown();
+    if (emptyText) emptyText.textContent = '選擇主題歌單';
+    _renderGrid();
 
   } catch (e) {
-    if (trigger) trigger.textContent = '網路錯誤：' + e.message;
+    if (emptyText) emptyText.textContent = '網路錯誤：' + e.message;
   }
 }
 
-/* ── 渲染下拉選單內容 ── */
+/* ── 渲染格狀選單 ── */
 
-function _renderDropdown() {
-  const listEl = document.getElementById('playlist-list');
-  if (!listEl) return;
+function _renderGrid() {
+  const grid = document.getElementById('playlist-grid');
+  if (!grid) return;
 
-  listEl.innerHTML = _playlists.map(p => `
-    <div class="pl-option" onclick="selectPlaylist('${p.id}', '${_esc(p.name)}', '${p.img || ''}', ${p.total})">
-      <div class="pl-option-img">
+  grid.innerHTML = _playlists.map(p => `
+    <div class="pl-cell ${p.id === _selectedId ? 'active' : ''}"
+         onclick="selectPlaylist('${p.id}', '${_esc(p.name)}', '${p.img || ''}', ${p.total})">
+      <div class="pl-cell-img">
         ${p.img
-      ? `<img src="${p.img}" alt="" width="36" height="36" style="border-radius:6px;display:block;">`
-      : `<i class="ti ti-music" aria-hidden="true" style="font-size:18px;color:#555;"></i>`
+      ? `<img src="${p.img}" alt="">`
+      : `<i class="ti ti-music" aria-hidden="true"></i>`
     }
       </div>
-      <div class="pl-option-info">
-        <div class="pl-option-name">${_esc(p.name)}</div>
-        <div class="pl-option-meta">${p.total} 首</div>
+      <div class="pl-cell-info">
+        <div class="pl-cell-name">${_esc(p.name)}</div>
+        <div class="pl-cell-count">${p.total} 首</div>
       </div>
-      ${p.id === _selectedId ? `<i class="ti ti-check pl-option-check" aria-hidden="true"></i>` : ''}
     </div>
   `).join('');
 }
 
-/* ── 展開 / 收合下拉（觸發器 or 已選卡片都呼叫這個） ── */
+/* ── 展開 / 收合格狀選單 ── */
 
 function toggleDropdown() {
   if (!_playlistsLoaded) return;
   _dropdownOpen = !_dropdownOpen;
 
-  const listEl = document.getElementById('playlist-list');
-  const trigger = document.getElementById('pl-trigger');
-  const card = document.getElementById('pl-selected-card');
-  const arrow = document.getElementById('pl-arrow');
-  const cardArrow = document.getElementById('pl-sel-arrow');
+  const sheet = document.getElementById('playlist-grid-sheet');
+  const selCapsule = document.getElementById('pl-capsule-sel');
 
-  if (listEl) listEl.classList.toggle('open', _dropdownOpen);
-
-  if (trigger && trigger.style.display !== 'none') {
-    if (arrow) arrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
-    trigger.classList.toggle('open', _dropdownOpen);
-  }
-
-  if (card && card.style.display !== 'none') {
-    card.classList.toggle('open', _dropdownOpen);
-    if (cardArrow) cardArrow.style.transform = _dropdownOpen ? 'rotate(180deg)' : '';
-  }
+  if (sheet) sheet.classList.toggle('open', _dropdownOpen);
+  if (selCapsule) selCapsule.classList.toggle('open', _dropdownOpen);
 }
 
 /* ── 選擇歌單 ── */
@@ -131,36 +110,34 @@ function selectPlaylist(id, name, img, total) {
 
   _dropdownOpen = false;
 
-  const trigger = document.getElementById('pl-trigger');
-  const listEl = document.getElementById('playlist-list');
+  const emptyCapsule = document.getElementById('pl-capsule-empty');
+  const selCapsule = document.getElementById('pl-capsule-sel');
+  const selDot = document.getElementById('pl-capsule-sel-dot');
+  const selName = document.getElementById('pl-capsule-sel-name');
+  const sheet = document.getElementById('playlist-grid-sheet');
   const btnNext = document.getElementById('btn-next');
-  const card = document.getElementById('pl-selected-card');
-  const cardArrow = document.getElementById('pl-sel-arrow');
 
-  if (listEl) listEl.classList.remove('open');
+  if (emptyCapsule) emptyCapsule.style.display = 'none';
 
-  if (trigger) trigger.style.display = 'none';
-
-  if (card) {
-    card.style.display = 'flex';
-    card.classList.remove('open');
-    if (cardArrow) cardArrow.style.transform = '';
-
-    document.getElementById('pl-sel-img-wrap').innerHTML = _selectedImg
-      ? `<img src="${_selectedImg}" alt="" width="36" height="36" style="border-radius:6px;display:block;">`
-      : `<i class="ti ti-music" aria-hidden="true" style="font-size:18px;color:#1DB954;"></i>`;
-    document.getElementById('pl-sel-name').textContent = name;
-    document.getElementById('pl-sel-meta').textContent = `${_selectedTotal} 首`;
+  if (selCapsule) {
+    selCapsule.style.display = 'flex';
+    selCapsule.classList.remove('open');
   }
 
-  if (btnNext) btnNext.style.display = 'block';
+  if (selDot) {
+    selDot.innerHTML = _selectedImg
+      ? `<img src="${_selectedImg}" alt="">`
+      : `<i class="ti ti-music" aria-hidden="true"></i>`;
+  }
 
-  _renderDropdown();
+  if (selName) selName.textContent = name;
+  if (sheet) sheet.classList.remove('open');
+  if (btnNext) btnNext.style.display = 'flex';
 
-  const ring = document.getElementById('status-ring');
+  _renderGrid();
+
   const statusText = document.getElementById('status-text');
   const ringIcon = document.getElementById('status-ring-icon');
-  if (ring) ring.classList.add('clickable');
   if (statusText) statusText.textContent = '點圓圈隨機播放';
   if (ringIcon) ringIcon.className = 'ti ti-music';
 }
@@ -195,7 +172,7 @@ async function playFromPlaylist() {
     }
 
     const d1 = await r1.json();
-    let tracks = (d1.items || [])
+    const tracks = (d1.items || [])
       .map(item => item && (item.track || item.item))
       .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
 
