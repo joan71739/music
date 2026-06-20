@@ -49,12 +49,13 @@ async function _loadPlaylists() {
     }
 
     const d = await r.json();
+    console.log('playlists raw:', JSON.stringify(d.items?.[0], null, 2));
     _playlists = (d.items || [])
       .filter(p => p && p.id && p.name && p.owner && p.owner.id === myId)
       .map(p => ({
         id: p.id,
         name: p.name,
-        total: p.tracks ? p.tracks.total : 0,
+        total: p.items?.total ?? p.tracks?.total ?? 0,
         img: (p.images && p.images.length > 0) ? p.images[0].url : null,
       }));
 
