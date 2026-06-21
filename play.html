@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王2.0</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/nfc.css">
+  <link rel="stylesheet" href="css/playlist-mode.css">
+</head>
+
+<body>
+
+  <!-- 登入頁 -->
+  <div id="login-view">
+    <div class="login-icon">
+      <div class="icon-layered">
+        <i class="ti ti-vinyl" aria-hidden="true"></i>
+        <i class="ti ti-nfc" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div class="login-title">金曲歌王2.0</div>
+    <div class="login-sub">掃描 NFC 卡自動播放 Spotify 歌曲<br>需要 Spotify Premium 帳號</div>
+    <button class="btn-green" onclick="login()">連結 Spotify 帳號</button>
+  </div>
+
+  <!-- 播放器 -->
+  <div id="player-view">
+
+    <!-- 答案卡（共用） -->
+    <div id="answer-card">
+      <div id="answer-hidden" onclick="toggleReveal()">
+        <span id="answer-placeholder">？？？</span>
+        <span id="answer-tap-hint">點擊揭曉答案</span>
+      </div>
+      <div id="answer-revealed" onclick="toggleReveal()">
+        <div id="answer-song-name"></div>
+        <div id="answer-artist-name"></div>
+      </div>
+    </div>
+    <div id="answer-divider"></div>
+
+    <!-- Play body -->
+    <div id="play-body">
+
+      <!-- 主題選歌：膠囊 + 格狀選單（playlist-mode.js 控制） -->
+
+      <div id="playlist-mode-panel">
+
+        <div id="pl-capsule-empty" onclick="toggleDropdown()">
+          <div id="pl-capsule-empty-dot">
+            <i class="ti ti-music" aria-hidden="true"></i>
+          </div>
+          <span id="pl-capsule-empty-text">選擇主題歌單</span>
+          <span id="pl-capsule-empty-arr">▾</span>
+        </div>
+
+        <div id="pl-capsule-sel" onclick="toggleDropdown()">
+          <div id="pl-capsule-sel-dot">
+            <i class="ti ti-music" aria-hidden="true"></i>
+          </div>
+          <span id="pl-capsule-sel-name"></span>
+          <span id="pl-capsule-sel-arr">▾</span>
+        </div>
+
+        <div id="playlist-grid-sheet">
+          <div id="playlist-grid"></div>
+        </div>
+
+      </div>
+
+
+      <!-- 狀態圓環（共用） -->
+
+      <div class="status-area">
+        <div style="position:relative; display:inline-flex; flex-direction:column; align-items:center;">
+
+          <div id="status-ring" onclick="ringTogglePlayPause()">
+            <i id="status-ring-icon" class="ti ti-nfc" aria-hidden="true"></i>
+            <div id="ring-pill" style="display:none">
+              <div id="ring-pill-dot"></div>
+              <span id="ring-pill-state"></span>
+              <span id="ring-pill-action"></span>
+            </div>
+          </div>
+
+          <button id="btn-next" onclick="playFromPlaylist()" aria-label="下一首">
+            <i class="ti ti-player-skip-forward" aria-hidden="true"></i>
+            <span>下一首</span>
+          </button>
+
+        </div>
+        <div id="status-text">靠近 NFC 卡開始播放</div>
+      </div>
+
+
+      <div id="playing-indicator"></div>
+      <div id="mode-badge"></div>
+
+      <!-- 計時器（共用） -->
+      <div id="timer-wrap">
+        <div id="timer-bar-bg">
+          <div id="timer-bar"></div>
+        </div>
+        <div id="timer-label"></div>
+      </div>
+
+      <!-- 播放設定（兩個 tab 共用） -->
+      <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
+        <div class="settings-toggle-left">
+          <i class="ti ti-settings" style="font-size:15px" aria-hidden="true"></i>
+          播放設定
+        </div>
+        <div class="settings-toggle-right">
+          <span id="settings-summary"></span>
+          <span class="s-arrow">▾</span>
+        </div>
+      </button>
+
+      <div id="settings-panel">
+        <div class="setting-row">
+          <div class="setting-label">
+            開始位置
+            <small>從第幾秒播起</small>
+          </div>
+          <div class="stepper">
+            <button class="step-btn" onclick="stepSetting('start',-5)">−</button>
+            <span class="step-val" id="display-start">0 秒</span>
+            <button class="step-btn" onclick="stepSetting('start',5)">+</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            限時播放
+            <small>關閉則完整播放</small>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-limit" onchange="onLimitToggle()">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+        <div class="setting-row" id="row-duration">
+          <div class="setting-label">
+            播放時長
+            <small>限時模式使用</small>
+          </div>
+          <div class="stepper">
+            <button class="step-btn" onclick="stepSetting('dur',-5)">−</button>
+            <span class="step-val" id="display-dur">30 秒</span>
+            <button class="step-btn" onclick="stepSetting('dur',5)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="debug-box"></div>
+      <div id="played-list-box"></div>
+    </div>
+
+    <!-- Footer -->
+    <div id="player-footer">
+      <button class="btn-sm" onclick="doLogout()" aria-label="登出">
+        <i class="ti ti-logout" aria-hidden="true"></i>登出
+      </button>
+      <button class="btn-sm" onclick="doDebug()" aria-label="測試連線">
+        <i class="ti ti-plug-connected" aria-hidden="true"></i>測試連線
+      </button>
+      <button class="btn-sm" onclick="togglePlayedList()" aria-label="今日歌單">
+        <i class="ti ti-list" aria-hidden="true"></i>今日歌單
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="played-toast"></div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/nfc.js"></script>
+  <script src="js/playlist-mode.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+
+</html>
