@@ -16,6 +16,13 @@ let _timerStartedAt = 0;
 
 let _isRevealed = false;
 
+// ── 新增：記錄當前播放資訊 ──
+let _currentUri = null;       // 目前播放的 URI
+let _currentStartMs = 0;      // 播放開始位置（設定值）
+let _pausedAtMs = null;       // 計時器斷點（毫秒）
+let _endedBySong = false;     // true = 整首歌自然播完
+let _pollHandle = null;       // polling interval handle
+
 /* ── View 切換 ── */
 
 function showView(name) {
@@ -50,6 +57,20 @@ function setStatus(state, text) {
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'none';
+  } else if (state === 'ended-timer') {
+    // 我設定的時間到了，可從斷點繼續
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+    pill.style.display = 'flex';
+    pState.textContent = '時間到 · ';
+    pAction.textContent = '點我從斷點繼續';
+  } else if (state === 'ended-song') {
+    // 整首歌播完，可從頭重播
+    ring.classList.add('ended');
+    icon.className = 'ti ti-player-pause';
+    pill.style.display = 'flex';
+    pState.textContent = '播放完畢 · ';
+    pAction.textContent = '點我重新播放';
   } else {
     icon.className = 'ti ti-nfc';
     pill.style.display = 'none';
@@ -64,10 +85,25 @@ function _showPlayPause(show) {
   else ring.classList.remove('clickable');
 }
 
-/** 圓環點擊：切換播放/暫停 */
+/** 圓環點擊：根據三種狀態分流 */
 function ringTogglePlayPause() {
-  if (_isTimerDone) return;
   if (!document.getElementById('status-ring').classList.contains('clickable')) return;
+
+  if (_isTimerDone && _endedBySong) {
+    // 整首歌播完 → 從設定的 start_ms 重頭播
+    if (_currentUri) playTrack(_currentUri, _currentStartMs, null);
+    return;
+  }
+
+  if (_isTimerDone && !_endedBySong) {
+    // 我設定的時間到了 → 從斷點繼續播（不限時）
+    if (_currentUri && _pausedAtMs !== null) {
+      playTrack(_currentUri, _pausedAtMs, null);
+    }
+    return;
+  }
+
+  // 一般播放中 / 暫停中 → 切換播放暫停
   _togglePlayPause();
 }
 
@@ -143,16 +179,37 @@ function _runTimer(durationMs) {
   _timerHandle = setTimeout(async () => {
     clearInterval(_tickHandle);
     _isTimerDone = true;
+    _endedBySong = false;
     _timerStartedAt = 0;
-    _showPlayPause(false);
 
     const t = await getToken();
+
+    // 取得斷點位置
+    try {
+      if (t) {
+        const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: { Authorization: 'Bearer ' + t },
+        });
+        if (r.status === 200) {
+          const d = await r.json();
+          if (d && d.progress_ms != null) {
+            _pausedAtMs = d.progress_ms;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('取得斷點失敗:', e);
+    }
+
     if (t) {
       await fetch('https://api.spotify.com/v1/me/player/pause', {
         method: 'PUT', headers: { Authorization: 'Bearer ' + t },
       });
     }
-    setStatus('ended', '音樂結束，等待揭曉');
+
+    _showPlayPause(true);
+    setStatus('ended-timer', '音樂結束，等待揭曉');
+
   }, durationMs);
 }
 
@@ -168,6 +225,8 @@ function _resetTimer() {
   clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
   _isTimerDone = false;
+  _endedBySong = false;
+  _pausedAtMs = null;
   _isPaused = false;
   _timerRemaining = 0;
   _timerStartedAt = 0;
@@ -177,6 +236,63 @@ function _resetTimer() {
   const bar = document.getElementById('timer-bar');
   bar.style.transition = 'none';
   bar.style.width = '100%';
+}
+
+/* ── Polling：偵測整首歌播完 ── */
+
+function _startPolling() {
+  _stopPolling();
+  _pollHandle = setInterval(_checkSongEnded, 3000);
+}
+
+function _stopPolling() {
+  if (_pollHandle) {
+    clearInterval(_pollHandle);
+    _pollHandle = null;
+  }
+}
+
+async function _checkSongEnded() {
+  // 如果已經被計時器結束、或使用者暫停中，不需要 polling 判斷
+  if (_isTimerDone || _isPaused) return;
+
+  const t = await getToken();
+  if (!t) return;
+
+  try {
+    const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { Authorization: 'Bearer ' + t },
+    });
+
+    // 204 = 沒有在播放任何東西
+    if (r.status === 204) {
+      _onSongEnded();
+      return;
+    }
+
+    if (r.status === 200) {
+      const d = await r.json();
+      if (!d) return;
+
+      // is_playing = false 且進度接近結尾（最後 3 秒內）→ 視為播完
+      const nearEnd = d.item && d.progress_ms >= (d.item.duration_ms - 3000);
+      if (!d.is_playing && nearEnd) {
+        _onSongEnded();
+      }
+    }
+  } catch (e) {
+    console.error('polling error:', e);
+  }
+}
+
+function _onSongEnded() {
+  _stopPolling();
+  if (_isTimerDone) return; // 已經被計時器處理過，不重複觸發
+
+  _isTimerDone = true;
+  _endedBySong = true;
+  _showPlayPause(true);
+  setStatus('ended-song', '音樂結束，等待揭曉');
 }
 
 /* ── 答案揭曉 ── */
@@ -217,7 +333,6 @@ async function _fetchTrackInfo() {
     const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
       headers: { Authorization: 'Bearer ' + t },
     });
-    // 204 = 沒有歌曲在播放，跳過
     if (r.status === 200) {
       const d = await r.json();
       if (d && d.item) {
@@ -239,17 +354,21 @@ async function _fetchTrackInfo() {
  * @param {number|null} durationMs 限時長度（毫秒），null = 完整播放
  */
 async function playTrack(uri, startMs, durationMs) {
+  _stopPolling();
   _resetTimer();
   _resetAnswer();
   setStatus('idle', '連線中...');
   document.getElementById('mode-badge').classList.remove('show');
+
+  // 記錄當前播放資訊
+  _currentUri = uri;
+  _currentStartMs = startMs || 0;
 
   const t = await getToken();
   if (!t) { setStatus('idle', '請重新登入'); showView('login'); return; }
 
   setStatus('idle', '尋找裝置...');
 
-  // [修正D] devices API 加 try/catch，防止 429、503 等非 JSON 回應噴錯
   let devices = [];
   try {
     const dr = await fetch('https://api.spotify.com/v1/me/player/devices', {
@@ -291,7 +410,14 @@ async function playTrack(uri, startMs, durationMs) {
       _showPlayPause(true);
 
       const badgeParts = [];
-      if (startMs && startMs > 0) badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
+      if (startMs && startMs > 0) {
+        // 如果是從斷點繼續播，顯示不同文字
+        if (startMs === _pausedAtMs) {
+          badgeParts.push('從斷點接續播放中');
+        } else {
+          badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
+        }
+      }
       if (durationMs) badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
       const badge = document.getElementById('mode-badge');
       if (badgeParts.length > 0) {
@@ -299,7 +425,13 @@ async function playTrack(uri, startMs, durationMs) {
         badge.classList.add('show');
       }
 
-      if (durationMs) setTimeout(() => startTimer(durationMs), 500);
+      if (durationMs) {
+        // 有限時 → 啟動計時器，計時結束後處理斷點
+        setTimeout(() => startTimer(durationMs), 500);
+      } else {
+        // 沒有限時 → 啟動 polling 偵測整首歌播完
+        setTimeout(() => _startPolling(), 3000); // 延遲 3 秒再開始偵測，避免剛播就誤判
+      }
 
       setTimeout(async () => {
         await _fetchTrackInfo();
@@ -326,20 +458,20 @@ async function doDebug() {
   const t = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
   box.textContent += 'Token: ' + (t ? t.substring(0, 15) + '...' : '無') + '\n';
-  // [修正A] parseInt radix 10
   box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp, 10) ? '是' : '已過期') : '無') + '\n';
-  // runtime token：透過 getToken() 確認，同時處理 refresh
   const runtimeOk = await getToken();
   box.textContent += 'Runtime token: ' + (runtimeOk ? '有' : '無') + '\n\n';
 
   const s = loadSettings();
   box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n\n`;
+  box.textContent += `當前 URI: ${_currentUri || '無'}\n`;
+  box.textContent += `斷點位置: ${_pausedAtMs !== null ? Math.round(_pausedAtMs / 1000) + ' 秒' : '無'}\n\n`;
 
   if (!runtimeOk) { box.textContent += '沒有有效 Token，請重新登入'; return; }
 
   try {
     const r = await fetch('https://api.spotify.com/v1/me/player/devices', {
-      headers: { Authorization: 'Bearer ' + runtimeOk },  // 使用經過 refresh 的有效 token
+      headers: { Authorization: 'Bearer ' + runtimeOk },
     });
     box.textContent += 'API 狀態: ' + r.status + '\n';
     const d = await r.json();
@@ -353,8 +485,7 @@ async function doDebug() {
   }
 }
 
-
-// player.js 底部新增
+// player.js 底部
 function isPlaying() { return !_isPaused && !_isTimerDone; }
 function isPaused() { return _isPaused && !_isTimerDone; }
 function isTimerDone() { return _isTimerDone; }
