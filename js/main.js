@@ -6,7 +6,20 @@
  */
 
 async function init() {
-  applySettingsToUI(loadSettings());
+  const s = loadSettings();
+
+  // 根據 mode 參數覆蓋播放設定（不寫入 localStorage）
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  if (mode === 'intro') {
+    s.startSec = 0;
+    s.limitMode = true;
+    s.durationSec = 30;
+  } else if (mode === 'name') {
+    s.startSec = 30;
+    s.limitMode = false;
+  }
+
+  applySettingsToUI(s);
 
   const t = await getToken();
   if (!t) {

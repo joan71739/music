@@ -70,13 +70,15 @@
   transition: border-color 0.2s, background 0.2s;
 }
 
+/* 改後 */
 .mode-active {
-  border-color: var(--green);
-  background: rgba(29, 185, 84, 0.06);
+  border-color: var(--border);
+  background: transparent;
 }
 
 .mode-active:hover {
-  background: rgba(29, 185, 84, 0.1);
+  border-color: var(--green);
+  background: rgba(29, 185, 84, 0.06);
 }
 
 .mode-disabled {
