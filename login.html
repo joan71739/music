@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金曲歌王 — 登入</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body>
+
+    <div id="login-view">
+        <div class="login-icon">
+            <div class="icon-layered">
+                <i class="ti ti-vinyl" aria-hidden="true"></i>
+                <i class="ti ti-nfc" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div class="login-title">金曲歌王2.0</div>
+        <div class="login-sub">掃描 NFC 卡自動播放 Spotify 歌曲<br>需要 Spotify Premium 帳號</div>
+        <button class="btn-green" onclick="login()">連結 Spotify 帳號</button>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        async function init() {
+            const callbackOk = await handleCallback();
+            if (callbackOk) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const t = await getToken();
+            if (t) {
+                window.location.href = 'index.html';
+                return;
+            }
+        }
+        init();
+    </script>
+
+</body>
+
+</html>

@@ -158,3 +158,64 @@
 .home-footer-dot {
   color: #222;
 }
+
+/* ── 首頁登出按鈕 ── */
+.home-logout-btn {
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.home-logout-btn:hover {
+  color: #666;
+}
+
+.home-logout-btn .ti {
+  font-size: 14px;
+}
+
+/* ── Home Toast ── */
+#home-toast {
+  position: fixed;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #252525;
+  border: 1px solid #333;
+  color: #fff;
+  font-size: 13px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#home-toast.show {
+  top: 24px;
+}
+
+.toast-check {
+  background: var(--green);
+  color: #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-right: 8px;
+  font-weight: 800;
+  font-size: 11px;
+}

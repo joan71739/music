@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>金曲歌王2.0</title>
+  <title>金曲歌王 — 猜歌名</title>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 
@@ -50,7 +50,6 @@
     <div id="play-body">
 
       <!-- 主題選歌：膠囊 + 格狀選單（playlist-mode.js 控制） -->
-
       <div id="playlist-mode-panel">
 
         <div id="pl-capsule-empty" onclick="toggleDropdown()">
@@ -75,9 +74,7 @@
 
       </div>
 
-
       <!-- 狀態圓環（共用） -->
-
       <div class="status-area">
         <div style="position:relative; display:inline-flex; flex-direction:column; align-items:center;">
 
@@ -99,7 +96,6 @@
         <div id="status-text">靠近 NFC 卡開始播放</div>
       </div>
 
-
       <div id="playing-indicator"></div>
       <div id="mode-badge"></div>
 
@@ -111,7 +107,7 @@
         <div id="timer-label"></div>
       </div>
 
-      <!-- 播放設定（兩個 tab 共用） -->
+      <!-- 播放設定 -->
       <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
         <div class="settings-toggle-left">
           <i class="ti ti-settings" style="font-size:15px" aria-hidden="true"></i>
@@ -164,8 +160,8 @@
 
     <!-- Footer -->
     <div id="player-footer">
-      <button class="btn-sm" onclick="doLogout()" aria-label="登出">
-        <i class="ti ti-logout" aria-hidden="true"></i>登出
+      <button class="btn-sm" onclick="window.location.href='index.html'" aria-label="返回首頁">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>返回
       </button>
       <button class="btn-sm" onclick="doDebug()" aria-label="測試連線">
         <i class="ti ti-plug-connected" aria-hidden="true"></i>測試連線

@@ -4,19 +4,18 @@
  * 負責：登入、登出、token 取得與自動更新
  */
 
-const CLIENT_ID    = 'de45db7ad49b41efb68dbaa362f65f8c';
+const CLIENT_ID = 'de45db7ad49b41efb68dbaa362f65f8c';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES       = [
+const SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state',
   'user-read-currently-playing',
-  'playlist-read-private',        // 讀取私人歌單（主題選歌用）
-  'playlist-read-collaborative',  // 讀取協作歌單
+  'playlist-read-private',
+  'playlist-read-collaborative',
   'playlist-modify-public',
   'playlist-modify-private',
 ].join(' ');
 
-// 目前有效的 access token（runtime 快取）
 let _token = null;
 
 /* ── 工具函式 ── */
@@ -36,46 +35,44 @@ async function _challenge(verifier) {
 
 /* ── 公開 API ── */
 
-/** 導向 Spotify 授權頁 */
 function login() {
-  const state    = _rand(16);
+  const state = _rand(16);
   const verifier = _rand(64);
   sessionStorage.setItem('cv', verifier);
   sessionStorage.setItem('st', state);
 
   _challenge(verifier).then(ch => {
     const params = new URLSearchParams({
-      response_type:         'code',
-      client_id:             CLIENT_ID,
-      scope:                 SCOPES,
-      redirect_uri:          REDIRECT_URI,
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      redirect_uri: REDIRECT_URI,
       state,
       code_challenge_method: 'S256',
-      code_challenge:        ch,
-      show_dialog:           'true',
+      code_challenge: ch,
+      show_dialog: 'true',
     });
     window.location = 'https://accounts.spotify.com/authorize?' + params;
   });
 }
 
-/** 處理授權回呼，成功回傳 true */
 async function handleCallback() {
   const params = new URLSearchParams(window.location.search);
-  const code   = params.get('code');
-  const state  = params.get('state');
+  const code = params.get('code');
+  const state = params.get('state');
   if (!code || state !== sessionStorage.getItem('st')) return false;
 
   window.history.replaceState({}, '', window.location.pathname);
 
   try {
     const r = await fetch('https://accounts.spotify.com/api/token', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    new URLSearchParams({
-        grant_type:    'authorization_code',
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
         code,
-        redirect_uri:  REDIRECT_URI,
-        client_id:     CLIENT_ID,
+        redirect_uri: REDIRECT_URI,
+        client_id: CLIENT_ID,
         code_verifier: sessionStorage.getItem('cv'),
       }),
     });
@@ -84,29 +81,24 @@ async function handleCallback() {
       _saveToken(d);
       return true;
     }
-  } catch(e) {
+  } catch (e) {
     console.error('handleCallback error:', e);
   }
   return false;
 }
 
-/** 登出：清除所有 storage，回到登入頁 */
 function doLogout() {
   localStorage.clear();
   _token = null;
-  showView('login');
+  window.location.href = 'login.html';
 }
 
-/**
- * 取得有效 token。
- * 優先用 runtime 快取 → localStorage → refresh。
- */
 async function getToken() {
   if (_token) return _token;
 
-  const t   = localStorage.getItem('spotify_token');
+  const t = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
-  if (t && exp && Date.now() < parseInt(exp, 10) - 60000) {  // [修正A] radix 10
+  if (t && exp && Date.now() < parseInt(exp, 10) - 60000) {
     _token = t;
     return _token;
   }
@@ -118,7 +110,7 @@ async function getToken() {
 
 function _saveToken(d) {
   _token = d.access_token;
-  localStorage.setItem('spotify_token',   _token);
+  localStorage.setItem('spotify_token', _token);
   localStorage.setItem('spotify_refresh', d.refresh_token);
   localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
 }
@@ -129,26 +121,25 @@ async function _refreshToken() {
 
   try {
     const r = await fetch('https://accounts.spotify.com/api/token', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    new URLSearchParams({
-        grant_type:    'refresh_token',
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
         refresh_token: refresh,
-        client_id:     CLIENT_ID,
+        client_id: CLIENT_ID,
       }),
     });
     const d = await r.json();
     if (d.access_token) {
       _token = d.access_token;
-      localStorage.setItem('spotify_token',   _token);
+      localStorage.setItem('spotify_token', _token);
       localStorage.setItem('spotify_expires', Date.now() + d.expires_in * 1000);
-      // [修正C] Spotify 有時會輪換 refresh_token，有就更新
       if (d.refresh_token) {
         localStorage.setItem('spotify_refresh', d.refresh_token);
       }
       return true;
     }
-  } catch(e) {
+  } catch (e) {
     console.error('_refreshToken error:', e);
   }
   return false;
