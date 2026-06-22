@@ -239,6 +239,10 @@
   color: var(--muted);
 }
 
+#pl-capsule-sel-row {
+  display: none;
+}
+
 /* ── 清除按鈕 ── */
 #pl-capsule-clear {
   display: flex;
