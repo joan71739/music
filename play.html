@@ -33,7 +33,7 @@
   <!-- 播放器 -->
   <div id="player-view">
 
-    <!-- 答案卡（共用） -->
+    <!-- 答案卡 -->
     <div id="answer-card">
       <div id="answer-hidden" onclick="toggleReveal()">
         <span id="answer-placeholder">？？？</span>
@@ -48,7 +48,6 @@
     <!-- 主題選歌 -->
     <div id="playlist-mode-panel">
 
-      <!-- 未選擇狀態 -->
       <div id="pl-capsule-empty" onclick="toggleDropdown()">
         <div id="pl-capsule-empty-dot">
           <i class="ti ti-music" aria-hidden="true"></i>
@@ -57,7 +56,6 @@
         <span id="pl-capsule-empty-arr">▾</span>
       </div>
 
-      <!-- 已選狀態：主題框 + 結束框同排 -->
       <div id="pl-capsule-sel-row" style="display:none">
         <div id="pl-capsule-sel" onclick="toggleDropdown()">
           <div id="pl-capsule-sel-dot">
@@ -71,7 +69,6 @@
         </button>
       </div>
 
-      <!-- 展開的格狀選單 -->
       <div id="playlist-grid-sheet">
         <div id="playlist-grid"></div>
       </div>
@@ -81,7 +78,6 @@
     <!-- Play body -->
     <div id="play-body">
 
-      <!-- 狀態圓環（共用） -->
       <div class="status-area">
         <div style="position:relative; display:inline-flex; flex-direction:column; align-items:center;">
 
@@ -105,7 +101,6 @@
 
       <div id="mode-badge"></div>
 
-      <!-- 計時器（共用） -->
       <div id="timer-wrap">
         <div id="timer-bar-bg">
           <div id="timer-bar"></div>
@@ -113,7 +108,6 @@
         <div id="timer-label"></div>
       </div>
 
-      <!-- 播放設定 -->
       <button class="settings-toggle" id="settings-toggle-btn" onclick="toggleSettings()">
         <div class="settings-toggle-left">
           <i class="ti ti-settings" style="font-size:15px" aria-hidden="true"></i>
@@ -164,7 +158,6 @@
       <div id="played-list-box"></div>
     </div>
 
-    <!-- Footer -->
     <div id="player-footer">
       <button class="btn-sm" onclick="window.location.href='index.html'" aria-label="返回首頁">
         <i class="ti ti-arrow-left" aria-hidden="true"></i>返回
@@ -182,6 +175,8 @@
   <!-- Toast -->
   <div id="played-toast"></div>
 
+  <script src="js/constants.js"></script>
+  <script src="js/base.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/player.js"></script>
   <script src="js/history.js"></script>
