@@ -130,7 +130,7 @@ function selectPlaylist(id, name, img, total) {
       : `<i class="ti ti-music" aria-hidden="true"></i>`;
   }
 
-  if (selName) selName.textContent = '目前所在主題： ' + name;
+  if (selName) selName.textContent = '目前主題： ' + name;
   if (sheet) sheet.classList.remove('open');
   if (btnNext) btnNext.style.display = 'flex';
 
