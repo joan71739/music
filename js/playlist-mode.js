@@ -56,7 +56,7 @@ async function _loadPlaylists() {
     }
 
     _playlistsLoaded = true;
-    if (emptyText) emptyText.textContent = '選擇主題歌單';
+    if (emptyText) emptyText.textContent = '尚未選擇主題包';
     _renderGrid();
 
   } catch (e) {
@@ -130,7 +130,7 @@ function selectPlaylist(id, name, img, total) {
       : `<i class="ti ti-music" aria-hidden="true"></i>`;
   }
 
-  if (selName) selName.textContent = name;
+  if (selName) selName.textContent = '目前所在主題： ' + name;
   if (sheet) sheet.classList.remove('open');
   if (btnNext) btnNext.style.display = 'flex';
 
@@ -206,4 +206,35 @@ function _esc(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// 清除主題包按鈕
+function clearPlaylist(e) {
+  if (e) e.stopPropagation();
+
+  _selectedId = null;
+  _selectedName = null;
+  _selectedImg = null;
+  _selectedTotal = null;
+  _dropdownOpen = false;
+
+  const emptyCapsule = document.getElementById('pl-capsule-empty');
+  const selCapsule   = document.getElementById('pl-capsule-sel');
+  const clearBtn     = document.getElementById('pl-capsule-clear');
+  const sheet        = document.getElementById('playlist-grid-sheet');
+  const btnNext      = document.getElementById('btn-next');
+  const emptyText    = document.getElementById('pl-capsule-empty-text');
+  const statusText   = document.getElementById('status-text');
+  const ringIcon     = document.getElementById('status-ring-icon');
+
+  if (emptyCapsule) emptyCapsule.style.display = 'flex';
+  if (selCapsule)   selCapsule.style.display   = 'none';
+  if (clearBtn)     clearBtn.style.display      = 'none';
+  if (sheet)        sheet.classList.remove('open');
+  if (btnNext)      btnNext.style.display       = 'none';
+  if (emptyText)    emptyText.textContent        = '尚未選擇主題包';
+  if (statusText)   statusText.textContent       = '靠近 NFC 卡開始播放';
+  if (ringIcon)     ringIcon.className           = 'ti ti-nfc';
+
+  _renderGrid();
 }
