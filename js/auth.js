@@ -20,11 +20,12 @@ let _token = null;
 
 /* ── 工具函式 ── */
 
+// 使用 crypto.getRandomValues 產生密碼學安全的隨機字串
 function _rand(n) {
   const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let r = '';
-  for (let i = 0; i < n; i++) r += c[Math.floor(Math.random() * c.length)];
-  return r;
+  const arr = new Uint8Array(n);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => c[b % c.length]).join('');
 }
 
 async function _challenge(verifier) {
