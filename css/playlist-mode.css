@@ -265,3 +265,15 @@
 #pl-capsule-clear i {
   font-size: 14px;
 }
+
+#pl-capsule-sel-row {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+#pl-capsule-sel-row #pl-capsule-sel {
+  flex: 1;
+  min-width: 0;
+}
