@@ -1,5 +1,5 @@
 /**
- * playlist-mode.js  v3
+ * playlist-mode.js  v4
  * 主題選歌模式：膠囊 + 格狀選單（橫式格）
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  */
@@ -46,7 +46,7 @@ async function _loadPlaylists() {
       .map(p => ({
         id: p.id,
         name: p.name,
-        total: p.items?.total ?? p.tracks?.total ?? 0,
+        total: p.tracks?.total ?? 0,
         img: (p.images && p.images.length > 0) ? p.images[0].url : null,
       }));
 
@@ -70,14 +70,18 @@ function _renderGrid() {
   const grid = document.getElementById('playlist-grid');
   if (!grid) return;
 
+  // 用 data-* 取代 onclick 字串，避免歌單名稱含單引號時注入問題
   grid.innerHTML = _playlists.map(p => `
     <div class="pl-cell ${p.id === _selectedId ? 'active' : ''}"
-         onclick="selectPlaylist('${p.id}', '${_esc(p.name)}', '${p.img || ''}', ${p.total})">
+         data-id="${p.id}"
+         data-name="${_esc(p.name)}"
+         data-img="${p.img || ''}"
+         data-total="${p.total}">
       <div class="pl-cell-img">
         ${p.img
-      ? `<img src="${p.img}" alt="">`
-      : `<i class="ti ti-music" aria-hidden="true"></i>`
-    }
+          ? `<img src="${p.img}" alt="">`
+          : `<i class="ti ti-music" aria-hidden="true"></i>`
+        }
       </div>
       <div class="pl-cell-info">
         <div class="pl-cell-name">${_esc(p.name)}</div>
@@ -85,6 +89,18 @@ function _renderGrid() {
       </div>
     </div>
   `).join('');
+
+  // 統一用 event delegation 處理點擊
+  grid.onclick = (e) => {
+    const cell = e.target.closest('.pl-cell');
+    if (!cell) return;
+    selectPlaylist(
+      cell.dataset.id,
+      cell.dataset.name,
+      cell.dataset.img,
+      parseInt(cell.dataset.total, 10)
+    );
+  };
 }
 
 /* ── 展開 / 收合格狀選單 ── */
@@ -140,7 +156,6 @@ function selectPlaylist(id, name, img, total) {
   const ringIcon = document.getElementById('status-ring-icon');
   if (statusText) statusText.textContent = '點圓圈隨機播放';
   if (ringIcon) ringIcon.className = 'ti ti-music';
-
 }
 
 /* ── 隨機播一首 ── */
@@ -209,7 +224,8 @@ function _esc(str) {
     .replace(/'/g, '&#39;');
 }
 
-// 清除主題包按鈕
+/* ── 清除主題包 ── */
+
 async function clearPlaylist(e) {
   if (e) e.stopPropagation();
 
@@ -219,7 +235,6 @@ async function clearPlaylist(e) {
   _selectedTotal = null;
   _dropdownOpen = false;
 
-  // 停止播放 + 重置所有播放狀態
   const t = await getToken();
   if (t) {
     fetch('https://api.spotify.com/v1/me/player/pause', {
