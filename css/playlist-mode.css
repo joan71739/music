@@ -243,37 +243,32 @@
 #pl-capsule-clear {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--muted);
+  gap: 7px;
+  height: 50px;
+  padding: 0 16px;
+  border-radius: 50px;
+  background: rgba(192, 57, 43, 0.1);
+  border: 1.5px solid #c0392b;
+  color: #e74c3c;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   flex-shrink: 0;
-  margin-left: 6px;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
 }
 
 #pl-capsule-clear:hover {
-  border-color: #e74c3c;
-  color: #e74c3c;
-  background: rgba(231, 76, 60, 0.08);
+  background: #c0392b;
+  color: #fff;
+  border-color: #c0392b;
+}
+
+#pl-capsule-clear:active {
+  transform: scale(0.96);
+  opacity: 0.85;
 }
 
 #pl-capsule-clear i {
-  font-size: 14px;
-}
-
-#pl-capsule-sel-row {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-#pl-capsule-sel-row #pl-capsule-sel {
-  flex: 1;
-  min-width: 0;
+  font-size: 20px;
 }
