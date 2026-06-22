@@ -19,6 +19,9 @@ async function init() {
     s.limitMode = false;
   }
 
+  // 寫回 localStorage
+  localStorage.setItem('player_settings', JSON.stringify(s));
+  
   applySettingsToUI(s);
 
   const t = await getToken();
