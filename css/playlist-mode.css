@@ -238,3 +238,30 @@
   font-size: 13px;
   color: var(--muted);
 }
+
+/* ── 清除按鈕 ── */
+#pl-capsule-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 6px;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+#pl-capsule-clear:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+}
+
+#pl-capsule-clear i {
+  font-size: 14px;
+}
