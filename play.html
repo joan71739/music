@@ -50,16 +50,17 @@
     <div id="play-body">
 
       <!-- 主題選歌：膠囊 + 格狀選單（playlist-mode.js 控制） -->
-      <div id="playlist-mode-panel">
+     <div id="playlist-mode-panel">
 
-        <div id="pl-capsule-empty" onclick="toggleDropdown()">
-          <div id="pl-capsule-empty-dot">
-            <i class="ti ti-music" aria-hidden="true"></i>
-          </div>
-          <span id="pl-capsule-empty-text">選擇主題歌單</span>
-          <span id="pl-capsule-empty-arr">▾</span>
+      <div id="pl-capsule-empty" onclick="toggleDropdown()">
+        <div id="pl-capsule-empty-dot">
+          <i class="ti ti-music" aria-hidden="true"></i>
         </div>
-
+        <span id="pl-capsule-empty-text">尚未選擇主題包</span>
+        <span id="pl-capsule-empty-arr">▾</span>
+      </div>
+    
+      <div id="pl-capsule-sel-row">
         <div id="pl-capsule-sel" onclick="toggleDropdown()">
           <div id="pl-capsule-sel-dot">
             <i class="ti ti-music" aria-hidden="true"></i>
@@ -70,12 +71,13 @@
         <button id="pl-capsule-clear" onclick="clearPlaylist(event)">
           <i class="ti ti-x" aria-hidden="true"></i>
         </button>
-
-        <div id="playlist-grid-sheet">
-          <div id="playlist-grid"></div>
-        </div>
-
       </div>
+    
+      <div id="playlist-grid-sheet">
+        <div id="playlist-grid"></div>
+      </div>
+    
+    </div>
 
       <!-- 狀態圓環（共用） -->
       <div class="status-area">
