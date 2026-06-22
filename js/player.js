@@ -16,7 +16,6 @@ let _timerStartedAt = 0;
 
 let _isRevealed = false;
 
-// ── 新增：記錄當前播放資訊 ──
 let _currentUri = null;       // 目前播放的 URI
 let _currentStartMs = 0;      // 播放開始位置（設定值）
 let _pausedAtMs = null;       // 計時器斷點（毫秒）
@@ -58,14 +57,12 @@ function setStatus(state, text) {
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'none';
   } else if (state === 'ended-timer') {
-    // 我設定的時間到了，可從斷點繼續
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'flex';
     pState.textContent = '時間到 · ';
     pAction.textContent = '點我從斷點繼續';
   } else if (state === 'ended-song') {
-    // 整首歌播完，可從頭重播
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'flex';
@@ -90,20 +87,17 @@ function ringTogglePlayPause() {
   if (!document.getElementById('status-ring').classList.contains('clickable')) return;
 
   if (_isTimerDone && _endedBySong) {
-    // 整首歌播完 → 從設定的 start_ms 重頭播
     if (_currentUri) playTrack(_currentUri, _currentStartMs, null);
     return;
   }
 
   if (_isTimerDone && !_endedBySong) {
-    // 我設定的時間到了 → 從斷點繼續播（不限時）
     if (_currentUri && _pausedAtMs !== null) {
-      playTrack(_currentUri, _pausedAtMs, null, true); // true = 從斷點繼續
+      playTrack(_currentUri, _pausedAtMs, null, true);
     }
     return;
   }
 
-  // 一般播放中 / 暫停中 → 切換播放暫停
   _togglePlayPause();
 }
 
@@ -182,6 +176,9 @@ function _runTimer(durationMs) {
     _endedBySong = false;
     _timerStartedAt = 0;
 
+    // 計時器到時立即停止 polling，避免雙重觸發
+    _stopPolling();
+
     const t = await getToken();
 
     // 取得斷點位置
@@ -253,7 +250,6 @@ function _stopPolling() {
 }
 
 async function _checkSongEnded() {
-  // 如果已經被計時器結束、或使用者暫停中，不需要 polling 判斷
   if (_isTimerDone || _isPaused) return;
 
   const t = await getToken();
@@ -264,7 +260,6 @@ async function _checkSongEnded() {
       headers: { Authorization: 'Bearer ' + t },
     });
 
-    // 204 = 沒有在播放任何東西
     if (r.status === 204) {
       _onSongEnded();
       return;
@@ -274,7 +269,6 @@ async function _checkSongEnded() {
       const d = await r.json();
       if (!d) return;
 
-      // is_playing = false 且進度接近結尾（最後 3 秒內）→ 視為播完
       const nearEnd = d.item && d.progress_ms >= (d.item.duration_ms - 3000);
       if (!d.is_playing && nearEnd) {
         _onSongEnded();
@@ -287,7 +281,7 @@ async function _checkSongEnded() {
 
 function _onSongEnded() {
   _stopPolling();
-  if (_isTimerDone) return; // 已經被計時器處理過，不重複觸發
+  if (_isTimerDone) return;
 
   _isTimerDone = true;
   _endedBySong = true;
@@ -352,15 +346,15 @@ async function _fetchTrackInfo() {
  * @param {string} uri             Spotify track URI
  * @param {number|null} startMs    開始位置（毫秒），null = 從頭
  * @param {number|null} durationMs 限時長度（毫秒），null = 完整播放
+ * @param {boolean} isResume       true = 從斷點接續播放
  */
 async function playTrack(uri, startMs, durationMs, isResume = false) {
   _stopPolling();
-  _resetTimer();
+  _resetTimer();   // 內部已包含 _isPaused = false
   _resetAnswer();
   setStatus('idle', '連線中...');
   document.getElementById('mode-badge').classList.remove('show');
 
-  // 記錄當前播放資訊
   _currentUri = uri;
   _currentStartMs = startMs || 0;
 
@@ -405,17 +399,15 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
     if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
     if (pr.status === 204 || pr.status === 200) {
-      _isPaused = false;
       setStatus('playing', '播放中');
       _showPlayPause(true);
 
       const badgeParts = [];
-    if (startMs && startMs > 0) {
-        if (isResume) {
-          badgeParts.push('從斷點接續播放中');
-        } else {
-          badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
-        }
+      if (startMs && startMs > 0) {
+        badgeParts.push(isResume
+          ? '從斷點接續播放中'
+          : `從 ${Math.round(startMs / 1000)} 秒開始`
+        );
       }
       if (durationMs) badgeParts.push(`限時 ${Math.round(durationMs / 1000)} 秒`);
       const badge = document.getElementById('mode-badge');
@@ -425,11 +417,9 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
       }
 
       if (durationMs) {
-        // 有限時 → 啟動計時器，計時結束後處理斷點
         setTimeout(() => startTimer(durationMs), 500);
       } else {
-        // 沒有限時 → 啟動 polling 偵測整首歌播完
-        setTimeout(() => _startPolling(), 3000); // 延遲 3 秒再開始偵測，避免剛播就誤判
+        setTimeout(() => _startPolling(), 3000);
       }
 
       setTimeout(async () => {
@@ -483,8 +473,3 @@ async function doDebug() {
     box.textContent += '錯誤: ' + e.message;
   }
 }
-
-// player.js 底部
-function isPlaying() { return !_isPaused && !_isTimerDone; }
-function isPaused() { return _isPaused && !_isTimerDone; }
-function isTimerDone() { return _isTimerDone; }
