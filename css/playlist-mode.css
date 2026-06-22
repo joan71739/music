@@ -241,7 +241,7 @@
 
 /* ── 清除按鈕 ── */
 #pl-capsule-clear {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
