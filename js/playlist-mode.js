@@ -138,10 +138,9 @@ function selectPlaylist(id, name, img, total) {
 
   const statusText = document.getElementById('status-text');
   const ringIcon = document.getElementById('status-ring-icon');
-  const clearBtn = document.getElementById('pl-capsule-clear');
   if (statusText) statusText.textContent = '點圓圈隨機播放';
   if (ringIcon) ringIcon.className = 'ti ti-music';
-  if (clearBtn) clearBtn.style.display = 'flex';
+
 }
 
 /* ── 隨機播一首 ── */
