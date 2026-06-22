@@ -1,10 +1,3 @@
-/* ── NFC 設定面板：id 對應元素 ── */
-#settings-toggle-btn { /* 繼承 .settings-toggle，不需額外樣式 */ }
-#row-duration        { /* 繼承 .setting-row，disabled 狀態由 JS 控制 */ }
-#setting-limit       { /* 繼承 .toggle-switch input */ }
-#display-start,
-#display-dur         { /* 繼承 .step-val */ }
-
 /* ── NFC 設定面板 toggle 按鈕 ── */
 .settings-toggle {
   display: flex;
