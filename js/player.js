@@ -98,7 +98,7 @@ function ringTogglePlayPause() {
   if (_isTimerDone && !_endedBySong) {
     // 我設定的時間到了 → 從斷點繼續播（不限時）
     if (_currentUri && _pausedAtMs !== null) {
-      playTrack(_currentUri, _pausedAtMs, null);
+      playTrack(_currentUri, _pausedAtMs, null, true); // true = 從斷點繼續
     }
     return;
   }
@@ -353,7 +353,7 @@ async function _fetchTrackInfo() {
  * @param {number|null} startMs    開始位置（毫秒），null = 從頭
  * @param {number|null} durationMs 限時長度（毫秒），null = 完整播放
  */
-async function playTrack(uri, startMs, durationMs) {
+async function playTrack(uri, startMs, durationMs, isResume = false) {
   _stopPolling();
   _resetTimer();
   _resetAnswer();
@@ -410,9 +410,8 @@ async function playTrack(uri, startMs, durationMs) {
       _showPlayPause(true);
 
       const badgeParts = [];
-      if (startMs && startMs > 0) {
-        // 如果是從斷點繼續播，顯示不同文字
-        if (startMs === _pausedAtMs) {
+    if (startMs && startMs > 0) {
+        if (isResume) {
           badgeParts.push('從斷點接續播放中');
         } else {
           badgeParts.push(`從 ${Math.round(startMs / 1000)} 秒開始`);
