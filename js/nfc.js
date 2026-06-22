@@ -2,13 +2,17 @@
  * nfc.js
  * NFC 模式專屬邏輯。
  * 負責：播放設定（start/duration/limitMode）、URL 參數解析、NFC 觸發播放。
- * 依賴：auth.js（getToken）、player.js（playTrack）
+ * 依賴：auth.js（getToken）、player.js（playTrack）、constants.js（DEFAULTS）
  */
 
 /* ── 設定讀寫 ── */
 
 function loadSettings() {
-  const defaults = { limitMode: false, durationSec: 30, startSec: 0 };
+  const defaults = {
+    limitMode: DEFAULTS.LIMIT_MODE,
+    durationSec: DEFAULTS.DURATION_SEC,
+    startSec: DEFAULTS.START_SEC,
+  };
   const raw = localStorage.getItem('player_settings');
   if (!raw) return defaults;
   try { return { ...defaults, ...JSON.parse(raw) }; }
@@ -39,8 +43,8 @@ function applySettingsToUI(s) {
 
 function stepSetting(key, delta) {
   const s = loadSettings();
-  if (key === 'start') s.startSec    = Math.max(0,   Math.min(600, s.startSec + delta));
-  else                 s.durationSec = Math.max(5,   Math.min(300, s.durationSec + delta));
+  if (key === 'start') s.startSec    = Math.max(0,  Math.min(600, s.startSec + delta));
+  else                 s.durationSec = Math.max(5,  Math.min(300, s.durationSec + delta));
   _saveSettings(s);
   applySettingsToUI(s);
 }
@@ -71,7 +75,6 @@ function parsePlayParams() {
   if (!uri) return null;
 
   const s          = loadSettings();
-  // [修正A] parseInt 加 radix 10，防止前導零被誤判為八進位
   const startMs    = params.has('start_ms')
     ? parseInt(params.get('start_ms'), 10)
     : s.startSec * 1000;
@@ -88,8 +91,6 @@ function checkNFC() {
   const params = parsePlayParams();
   if (!params) return;
 
-  // 清除 URL 參數，避免重新整理時重複播放
   window.history.replaceState({}, '', window.location.pathname);
-
   setTimeout(() => playTrack(params.uri, params.startMs, params.durationMs), 300);
 }
