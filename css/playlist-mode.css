@@ -53,7 +53,7 @@
 
 /* ── 已選膠囊 ── */
 #pl-capsule-sel {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 10px;
   background: none;
