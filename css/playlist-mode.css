@@ -1,22 +1,21 @@
 /* ══════════════════════════════
-   css/playlist-mode.css  v3
+   css/playlist-mode.css  v4
    ══════════════════════════════ */
 
 #playlist-mode-panel {
   width: 100%;
-  max-width: 360px;
   margin-bottom: 0.8rem;
 }
 
-/* ── 未選擇膠囊 ── */
+/* ── 未選擇狀態 ── */
 #pl-capsule-empty {
   display: flex;
   align-items: center;
   gap: 10px;
   background: #141414;
   border: 1px solid #222;
-  border-radius: 50px;
-  padding: 10px 16px 10px 10px;
+  border-radius: 14px;
+  padding: 10px 14px 10px 10px;
   cursor: pointer;
   width: 100%;
   transition: border-color 0.2s;
@@ -27,16 +26,16 @@
 }
 
 #pl-capsule-empty-dot {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   background: #1e1e1e;
   border: 1px dashed #333;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #444;
-  font-size: 18px;
+  font-size: 17px;
   flex-shrink: 0;
 }
 
@@ -51,24 +50,31 @@
   font-size: 13px;
 }
 
-/* ── 已選膠囊 ── */
+/* ── 已選：row 容器（主題框 + 結束框同排） ── */
+#pl-capsule-sel-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ── 主題框（長方形 + 圓角） ── */
 #pl-capsule-sel {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  background: none;
+  background: #141414;
   border: 1px solid var(--border);
-  /* background: rgba(29, 185, 84, 0.1); */
-  /* border: 1px solid rgba(29, 185, 84, 0.35); */
-  border-radius: 50px;
-  padding: 10px 16px 10px 10px;
+  border-radius: 14px;
+  padding: 10px 12px;
   cursor: pointer;
-  width: 100%;
   transition: background 0.2s;
 }
 
 #pl-capsule-sel:hover {
-  background: rgba(29, 185, 84, 0.14);
+  background: rgba(29, 185, 84, 0.08);
 }
 
 #pl-capsule-sel.open {
@@ -76,32 +82,29 @@
 }
 
 #pl-capsule-sel-dot {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  /* background: rgba(29, 185, 84, 0.15); */
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   background: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* color: var(--green); */
   color: var(--muted);
-  font-size: 18px;
+  font-size: 17px;
   flex-shrink: 0;
   overflow: hidden;
 }
 
 #pl-capsule-sel-dot img {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: block;
+  border-radius: 8px;
 }
 
 #pl-capsule-sel-name {
-  font-size: 14px;
-  /* color: var(--green); */
+  font-size: 13px;
   color: var(--muted);
-  /* font-weight: 600; */
   font-weight: 400;
   flex: 1;
   white-space: nowrap;
@@ -110,9 +113,8 @@
 }
 
 #pl-capsule-sel-arr {
-  /* color: rgba(29, 185, 84, 0.5); */
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   flex-shrink: 0;
   transition: transform 0.25s;
 }
@@ -121,10 +123,43 @@
   transform: rotate(180deg);
 }
 
+/* ── 結束框（長方形 + 圓角，同 14px） ── */
+#pl-capsule-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(192, 57, 43, 0.1);
+  border: 1px solid #6b1f1f;
+  color: #e74c3c;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+#pl-capsule-clear:hover {
+  background: rgba(192, 57, 43, 0.22);
+  border-color: #c0392b;
+}
+
+#pl-capsule-clear:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+#pl-capsule-clear i {
+  font-size: 14px;
+}
+
 /* ── 格狀選單 ── */
 #playlist-grid-sheet {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
   background: #111;
   border: 1px solid var(--green);
   border-radius: 14px;
@@ -237,38 +272,4 @@
   text-align: center;
   font-size: 13px;
   color: var(--muted);
-}
-
-/* ── 清除按鈕 ── */
-#pl-capsule-clear {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 50px;
-  padding: 0 16px;
-  border-radius: 50px;
-  background: rgba(192, 57, 43, 0.1);
-  border: 1.5px solid #c0392b;
-  color: #e74c3c;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  flex-shrink: 0;
-  white-space: nowrap;
-  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
-}
-
-#pl-capsule-clear:hover {
-  background: #c0392b;
-  color: #fff;
-  border-color: #c0392b;
-}
-
-#pl-capsule-clear:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
-
-#pl-capsule-clear i {
-  font-size: 20px;
 }
