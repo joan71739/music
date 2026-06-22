@@ -3,8 +3,12 @@
    ══════════════════════════════ */
 
 #playlist-mode-panel {
-  width: 100%;
+  width: calc(100% + 3rem);
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
   margin-bottom: 0.8rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 /* ── 未選擇狀態 ── */
