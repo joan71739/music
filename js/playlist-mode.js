@@ -221,7 +221,6 @@ function clearPlaylist(e) {
 
   const emptyCapsule = document.getElementById('pl-capsule-empty');
   const selCapsule   = document.getElementById('pl-capsule-sel-row');
-  const clearBtn     = document.getElementById('pl-capsule-clear');
   const sheet        = document.getElementById('playlist-grid-sheet');
   const btnNext      = document.getElementById('btn-next');
   const emptyText    = document.getElementById('pl-capsule-empty-text');
@@ -230,7 +229,6 @@ function clearPlaylist(e) {
 
   if (emptyCapsule) emptyCapsule.style.display = 'flex';
   if (selCapsule)   selCapsule.style.display   = 'none';
-  if (clearBtn)     clearBtn.style.display      = 'none';
   if (sheet)        sheet.classList.remove('open');
   if (btnNext)      btnNext.style.display       = 'none';
   if (emptyText)    emptyText.textContent        = '尚未選擇主題包';
