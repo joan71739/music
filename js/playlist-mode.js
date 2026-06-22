@@ -56,7 +56,7 @@ async function _loadPlaylists() {
     }
 
     _playlistsLoaded = true;
-    if (emptyText) emptyText.textContent = '尚未選擇主題包';
+    if (emptyText) emptyText.textContent = '尚未選擇主題';
     _renderGrid();
 
   } catch (e) {
@@ -258,7 +258,7 @@ async function clearPlaylist(e) {
   if (selCapsule)   selCapsule.style.display   = 'none';
   if (sheet)        sheet.classList.remove('open');
   if (btnNext)      btnNext.style.display       = 'none';
-  if (emptyText)    emptyText.textContent        = '尚未選擇主題包';
+  if (emptyText)    emptyText.textContent        = '尚未選擇主題';
   if (ring)         ring.classList.remove('clickable');
 
   setStatus('idle', '靠近 NFC 卡開始播放');
