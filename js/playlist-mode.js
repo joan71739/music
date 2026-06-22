@@ -111,7 +111,7 @@ function selectPlaylist(id, name, img, total) {
   _dropdownOpen = false;
 
   const emptyCapsule = document.getElementById('pl-capsule-empty');
-  const selCapsule = document.getElementById('pl-capsule-sel');
+  const selCapsule = document.getElementById('pl-capsule-sel-row');
   const selDot = document.getElementById('pl-capsule-sel-dot');
   const selName = document.getElementById('pl-capsule-sel-name');
   const sheet = document.getElementById('playlist-grid-sheet');
@@ -221,7 +221,7 @@ function clearPlaylist(e) {
   _dropdownOpen = false;
 
   const emptyCapsule = document.getElementById('pl-capsule-empty');
-  const selCapsule   = document.getElementById('pl-capsule-sel');
+  const selCapsule   = document.getElementById('pl-capsule-sel-row');
   const clearBtn     = document.getElementById('pl-capsule-clear');
   const sheet        = document.getElementById('playlist-grid-sheet');
   const btnNext      = document.getElementById('btn-next');
