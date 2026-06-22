@@ -46,7 +46,7 @@ async function _loadPlaylists() {
       .map(p => ({
         id: p.id,
         name: p.name,
-        total: p.tracks?.total ?? 0,
+        total: p.items?.total ?? 0,
         img: (p.images && p.images.length > 0) ? p.images[0].url : null,
       }));
 
