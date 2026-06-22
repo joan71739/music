@@ -1,5 +1,5 @@
 /**
- * playlist-mode.js  v4
+ * playlist-mode.js  v5
  * 主題選歌模式：膠囊 + 格狀選單（橫式格）
  * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
  */
@@ -70,7 +70,6 @@ function _renderGrid() {
   const grid = document.getElementById('playlist-grid');
   if (!grid) return;
 
-  // 用 data-* 取代 onclick 字串，避免歌單名稱含單引號時注入問題
   grid.innerHTML = _playlists.map(p => `
     <div class="pl-cell ${p.id === _selectedId ? 'active' : ''}"
          data-id="${p.id}"
@@ -90,7 +89,6 @@ function _renderGrid() {
     </div>
   `).join('');
 
-  // 統一用 event delegation 處理點擊
   grid.onclick = (e) => {
     const cell = e.target.closest('.pl-cell');
     if (!cell) return;
@@ -123,29 +121,25 @@ function selectPlaylist(id, name, img, total) {
   _selectedName = name;
   _selectedImg = img || null;
   _selectedTotal = total || 0;
-
   _dropdownOpen = false;
 
   const emptyCapsule = document.getElementById('pl-capsule-empty');
-  const selCapsule = document.getElementById('pl-capsule-sel-row');
-  const selDot = document.getElementById('pl-capsule-sel-dot');
-  const selName = document.getElementById('pl-capsule-sel-name');
-  const sheet = document.getElementById('playlist-grid-sheet');
-  const btnNext = document.getElementById('btn-next');
+  const selCapsule   = document.getElementById('pl-capsule-sel-row');
+  const selDot       = document.getElementById('pl-capsule-sel-dot');
+  const selName      = document.getElementById('pl-capsule-sel-name');
+  const sheet        = document.getElementById('playlist-grid-sheet');
+  const btnNext      = document.getElementById('btn-next');
 
   if (emptyCapsule) emptyCapsule.style.display = 'none';
-
   if (selCapsule) {
     selCapsule.style.display = 'flex';
     selCapsule.classList.remove('open');
   }
-
   if (selDot) {
     selDot.innerHTML = _selectedImg
       ? `<img src="${_selectedImg}" alt="">`
       : `<i class="ti ti-music" aria-hidden="true"></i>`;
   }
-
   if (selName) selName.textContent = '目前主題： ' + name;
   if (sheet) sheet.classList.remove('open');
   if (btnNext) btnNext.style.display = 'flex';
@@ -153,9 +147,33 @@ function selectPlaylist(id, name, img, total) {
   _renderGrid();
 
   const statusText = document.getElementById('status-text');
-  const ringIcon = document.getElementById('status-ring-icon');
+  const ringIcon   = document.getElementById('status-ring-icon');
   if (statusText) statusText.textContent = '點圓圈隨機播放';
-  if (ringIcon) ringIcon.className = 'ti ti-music';
+  if (ringIcon)   ringIcon.className = 'ti ti-music';
+}
+
+/* ── 抓歌單所有歌曲（支援分頁） ── */
+
+async function _fetchAllTracks(playlistId, token) {
+  const tracks = [];
+  let url = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100&offset=0`;
+
+  while (url) {
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error('歌單讀取失敗 ' + r.status + '：' + errText.slice(0, 60));
+    }
+    const d = await r.json();
+    const page = (d.items || [])
+      .map(item => item?.track || item?.item)
+      .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
+    tracks.push(...page);
+    // next 有值代表還有下一頁，null 代表結束
+    url = d.next || null;
+  }
+
+  return tracks;
 }
 
 /* ── 隨機播一首 ── */
@@ -175,22 +193,7 @@ async function playFromPlaylist() {
 
   try {
     setStatus('idle', '讀取歌單...');
-    const r1 = await fetch(
-      `https://api.spotify.com/v1/playlists/${_selectedId}/items?limit=100&offset=0`,
-      { headers: { Authorization: 'Bearer ' + t } }
-    );
-
-    if (!r1.ok) {
-      const errText = await r1.text();
-      setStatus('idle', '歌單失敗 ' + r1.status + '：' + errText.slice(0, 60));
-      if (ring) ring.classList.add('clickable');
-      return;
-    }
-
-    const d1 = await r1.json();
-    const tracks = (d1.items || [])
-      .map(item => item && (item.track || item.item))
-      .filter(tr => tr && tr.uri && tr.uri.startsWith('spotify:track:'));
+    const tracks = await _fetchAllTracks(_selectedId, t);
 
     if (tracks.length === 0) {
       setStatus('idle', '這個歌單沒有可播放的歌曲');
@@ -200,11 +203,10 @@ async function playFromPlaylist() {
 
     const track = tracks[Math.floor(Math.random() * tracks.length)];
     const s = loadSettings();
-    const startMs = s.startSec * 1000;
+    const startMs    = s.startSec * 1000;
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
 
     await playTrack(track.uri, startMs, durationMs);
-
     if (ring) ring.classList.add('clickable');
 
   } catch (e) {
@@ -229,11 +231,11 @@ function _esc(str) {
 async function clearPlaylist(e) {
   if (e) e.stopPropagation();
 
-  _selectedId = null;
-  _selectedName = null;
-  _selectedImg = null;
+  _selectedId    = null;
+  _selectedName  = null;
+  _selectedImg   = null;
   _selectedTotal = null;
-  _dropdownOpen = false;
+  _dropdownOpen  = false;
 
   const t = await getToken();
   if (t) {
@@ -260,6 +262,5 @@ async function clearPlaylist(e) {
   if (ring)         ring.classList.remove('clickable');
 
   setStatus('idle', '靠近 NFC 卡開始播放');
-
   _renderGrid();
 }
