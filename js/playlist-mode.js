@@ -210,7 +210,7 @@ function _esc(str) {
 }
 
 // 清除主題包按鈕
-function clearPlaylist(e) {
+async function clearPlaylist(e) {
   if (e) e.stopPropagation();
 
   _selectedId = null;
@@ -219,21 +219,32 @@ function clearPlaylist(e) {
   _selectedTotal = null;
   _dropdownOpen = false;
 
+  // 停止播放 + 重置所有播放狀態
+  const t = await getToken();
+  if (t) {
+    fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT', headers: { Authorization: 'Bearer ' + t },
+    }).catch(() => {});
+  }
+  _resetTimer();
+  _resetAnswer();
+  _stopPolling();
+
   const emptyCapsule = document.getElementById('pl-capsule-empty');
   const selCapsule   = document.getElementById('pl-capsule-sel-row');
   const sheet        = document.getElementById('playlist-grid-sheet');
   const btnNext      = document.getElementById('btn-next');
   const emptyText    = document.getElementById('pl-capsule-empty-text');
-  const statusText   = document.getElementById('status-text');
-  const ringIcon     = document.getElementById('status-ring-icon');
+  const ring         = document.getElementById('status-ring');
 
   if (emptyCapsule) emptyCapsule.style.display = 'flex';
   if (selCapsule)   selCapsule.style.display   = 'none';
   if (sheet)        sheet.classList.remove('open');
   if (btnNext)      btnNext.style.display       = 'none';
   if (emptyText)    emptyText.textContent        = '尚未選擇主題包';
-  if (statusText)   statusText.textContent       = '靠近 NFC 卡開始播放';
-  if (ringIcon)     ringIcon.className           = 'ti ti-nfc';
+  if (ring)         ring.classList.remove('clickable');
+
+  setStatus('idle', '靠近 NFC 卡開始播放');
 
   _renderGrid();
 }
