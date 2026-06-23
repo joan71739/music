@@ -30,7 +30,7 @@
         玩家加入
       </div>
       <div id="qr-player" class="wait-qr-box"></div>
-      <div class="wait-qr-url" id="qr-player-url"></div>
+      <a class="wait-qr-url" id="qr-player-url" target="_blank"></a>
     </div>
 
     <div class="wait-qr-card wait-qr-card--host">
@@ -39,7 +39,7 @@
         主持人控制台
       </div>
       <div id="qr-host" class="wait-qr-box"></div>
-      <div class="wait-qr-url" id="qr-host-url"></div>
+      <a class="wait-qr-url" id="qr-host-url" target="_blank"></a>
     </div>
 
   </div>
@@ -95,8 +95,11 @@
     const playerUrl = `${BASE_URL}join.html?room=${roomCode}`;
     const hostUrl   = `${BASE_URL}host.html?room=${roomCode}`;
 
-    document.getElementById('qr-player-url').textContent = `join.html?room=${roomCode}`;
-    document.getElementById('qr-host-url').textContent   = `host.html?room=${roomCode}`;
+   document.getElementById('qr-player-url').textContent = `join.html?room=${roomCode}`;
+    document.getElementById('qr-player-url').href = playerUrl;
+    
+    document.getElementById('qr-host-url').textContent = `host.html?room=${roomCode}`;
+    document.getElementById('qr-host-url').href = hostUrl;
 
     _makeQR('qr-player', playerUrl);
     _makeQR('qr-host',   hostUrl);
@@ -107,7 +110,6 @@
       _renderPlayers(players);
     });
 
-    // ── Bug 4 修正：跳轉統一由這裡負責，handleStart() 不再自己跳 ──
     roomRef(roomCode).child('status').on('value', snap => {
       if (snap.val() === 'playing' && !_jumping) {
         _jumping = true;
