@@ -490,3 +490,96 @@ async function doDebug() {
     box.textContent += '錯誤: ' + e.message;
   }
 }
+
+/* ═══════════════════════════════════════════
+   多人模式：Firebase buzzer + 分數板監聽
+   只在有 room 參數時才會被呼叫
+═══════════════════════════════════════════ */
+
+let _prevBuzzerStatus = null;  // 防止重複觸發
+
+function initMultiplayerListeners() {
+  if (!_roomCode) return;
+
+  // ── 監聽 buzzer ──
+  buzzerRef(_roomCode).on('value', async snap => {
+    const buzzer = snap.val() || {};
+    const status = buzzer.status || 'idle';
+    const name = buzzer.playerName || '';
+    const emoji = buzzer.playerEmoji || '';
+
+    // 更新搶答狀態列
+    _renderBuzzerStatusBar(status, name, emoji);
+
+    // buzzing：自動暫停音樂 + 圓環聯動
+    if (status === 'buzzing' && _prevBuzzerStatus !== 'buzzing') {
+      if (!_isPaused && !_isTimerDone) {
+        const t = await getToken();
+        if (t) {
+          try {
+            await fetch('https://api.spotify.com/v1/me/player/pause', {
+              method: 'PUT', headers: { Authorization: 'Bearer ' + t },
+            });
+            _isPaused = true;
+            _pauseTimer();
+            setStatus('paused', `🔴 ${emoji}${name} 搶答中！`);
+            _showPlayPause(true);
+          } catch (e) {
+            console.warn('搶答暫停失敗:', e);
+          }
+        }
+      }
+    }
+
+    // waiting-next：host 按跳過 → 自動播下一首
+    if (status === 'waiting-next' && _prevBuzzerStatus !== 'waiting-next') {
+      // 短暫延遲讓 Firebase 寫完再播，避免競爭
+      setTimeout(() => {
+        if (typeof playFromPlaylist === 'function') {
+          playFromPlaylist();
+        }
+      }, 500);
+    }
+
+    _prevBuzzerStatus = status;
+  });
+
+  // ── 監聽 players 分數板 ──
+  playersRef(_roomCode).on('value', snap => {
+    _renderScoreboard(snap.val() || {});
+  });
+}
+
+function _renderBuzzerStatusBar(status, name, emoji) {
+  const el = document.getElementById('play-buzzer-status');
+  if (!el) return;
+  const map = {
+    'idle': '🎤 等待搶答中...',
+    'buzzing': `🔴 ${emoji}${name} 搶答中！請回答`,
+    'locked': `❌ ${emoji}${name} 答錯，其他人倒數中...`,
+    'judged': `✅ ${emoji}${name} 答對！等待下一首`,
+    'waiting-next': '⏭ 等待下一首...',
+  };
+  el.textContent = map[status] || '';
+}
+
+function _renderScoreboard(players) {
+  const el = document.getElementById('play-scoreboard');
+  if (!el) return;
+  const sorted = Object.values(players)
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+  if (sorted.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = sorted.map(p =>
+    `<div class="play-score-item">
+      <span class="play-score-avatar">${p.emoji || p.avatar || '🎵'}</span>
+      <span class="play-score-name">${_escHtml(p.name || '玩家')}</span>
+      <span class="play-score-pts">${p.score || 0}分</span>
+    </div>`
+  ).join('');
+}
+
+function _escHtml(str) {
+  return String(str).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+  );
+}

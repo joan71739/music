@@ -97,6 +97,12 @@
 
         </div>
         <div id="status-text">靠近 NFC 卡開始播放</div>
+
+        <!-- 多人模式：搶答狀態 + 分數板（room 參數存在才顯示） -->
+        <div id="play-multi-panel" style="display:none">
+          <div id="play-buzzer-status"></div>
+          <div id="play-scoreboard"></div>
+        </div>
       </div>
 
       <div id="mode-badge"></div>
@@ -191,6 +197,10 @@
           'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js', () =>
           loadScript('js/firebase.js', () => {
             if (typeof initFirebase === 'function') initFirebase();
+            // 顯示多人 panel + 啟動監聽
+            const panel = document.getElementById('play-multi-panel');
+            if (panel) panel.style.display = 'flex';
+            if (typeof initMultiplayerListeners === 'function') initMultiplayerListeners();
           })
         )
       );
