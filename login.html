@@ -27,17 +27,22 @@
 
     <script src="js/auth.js"></script>
     <script>
+        // 改 login.html 裡的 init()
         async function init() {
-            const callbackOk = await handleCallback();
-            if (callbackOk) {
-                window.location.href = 'index.html';
-                return;
-            }
-            const t = await getToken();
-            if (t) {
-                window.location.href = 'index.html';
-                return;
-            }
+          const callbackOk = await handleCallback();
+          if (callbackOk) {
+            const redirect = sessionStorage.getItem('loginRedirect');
+            sessionStorage.removeItem('loginRedirect');
+            window.location.href = redirect || 'index.html';
+            return;
+          }
+          const t = await getToken();
+          if (t) {
+            const redirect = sessionStorage.getItem('loginRedirect');
+            sessionStorage.removeItem('loginRedirect');
+            window.location.href = redirect || 'index.html';
+            return;
+          }
         }
         init();
     </script>
