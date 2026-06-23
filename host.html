@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金曲歌王 — 主持人控制台</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/host.css">
+</head>
+
+<body>
+
+    <!-- ── 密碼驗證畫面 ── -->
+    <div id="auth-view">
+        <div class="host-auth-card">
+            <div class="host-auth-icon">
+                <i class="ti ti-shield-lock"></i>
+            </div>
+            <div class="host-auth-title">主持人控制台</div>
+            <div class="host-auth-sub" id="auth-room-label">房間 ------</div>
+
+            <div class="host-auth-field">
+                <div class="create-input-wrap">
+                    <input id="auth-password" type="password" class="create-input" placeholder="輸入主持人密碼" maxlength="20"
+                        autocomplete="current-password">
+                    <button class="create-eye-btn" onclick="togglePwdVisibility()" type="button" aria-label="顯示/隱藏密碼">
+                        <i class="ti ti-eye" id="auth-eye-icon"></i>
+                    </button>
+                </div>
+                <div id="auth-error" class="create-error" style="display:none">密碼錯誤，請再試一次</div>
+            </div>
+
+            <button class="btn-green" id="auth-btn" onclick="handleAuth()">進入控制台</button>
+        </div>
+    </div>
+
+    <!-- ── 主控台畫面 ── -->
+    <div id="host-view" style="display:none">
+
+        <!-- 目前歌曲 -->
+        <div class="host-track-bar" id="host-track-bar">
+            <div class="host-track-icon"><i class="ti ti-music"></i></div>
+            <div class="host-track-info">
+                <div class="host-track-name" id="host-track-name">等待播放中...</div>
+                <div class="host-track-artist" id="host-track-artist"></div>
+            </div>
+        </div>
+
+        <!-- 搶答狀態 -->
+        <div class="host-buzzer-bar" id="host-buzzer-bar">
+            <div class="host-buzzer-dot" id="host-buzzer-dot"></div>
+            <span id="host-buzzer-text">等待搶答</span>
+        </div>
+
+        <!-- 判定按鈕區 -->
+        <div class="host-judge-section">
+            <div class="host-section-label">判定</div>
+            <div class="host-judge-btns">
+                <button class="host-judge-btn host-judge-correct" id="btn-correct-1" onclick="handleCorrect(1)"
+                    disabled>
+                    <span class="judge-score">+1</span>
+                    <span class="judge-label">答對</span>
+                </button>
+                <button class="host-judge-btn host-judge-correct" id="btn-correct-2" onclick="handleCorrect(2)"
+                    disabled>
+                    <span class="judge-score">+2</span>
+                    <span class="judge-label">答對</span>
+                </button>
+                <button class="host-judge-btn host-judge-correct" id="btn-correct-3" onclick="handleCorrect(3)"
+                    disabled>
+                    <span class="judge-score">+3</span>
+                    <span class="judge-label">答對</span>
+                </button>
+            </div>
+            <div class="host-judge-row2">
+                <button class="host-judge-btn host-judge-wrong" id="btn-wrong" onclick="handleWrong()" disabled>
+                    <i class="ti ti-x"></i> 答錯
+                </button>
+                <button class="host-judge-btn host-judge-skip" id="btn-skip" onclick="handleSkip()" disabled>
+                    <i class="ti ti-player-skip-forward"></i> 跳過
+                </button>
+            </div>
+        </div>
+
+        <!-- 分隔線 -->
+        <div class="host-divider"></div>
+
+        <!-- 分數板 -->
+        <div class="host-scores-section">
+            <div class="host-section-label">即時分數</div>
+            <div id="host-scores-list" class="host-scores-list">
+                <div class="host-no-players">尚無玩家</div>
+            </div>
+        </div>
+
+        <!-- footer -->
+        <div class="host-footer">
+            <div class="host-footer-room">房間 <span id="host-footer-room-code"></span></div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/host.js"></script>
+
+</body>
+
+</html>

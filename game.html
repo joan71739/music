@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金曲歌王 — 搶答</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/game.css">
+</head>
+
+<body>
+
+    <div id="game-view">
+
+        <!-- 頂部資訊 -->
+        <div class="game-header">
+            <div class="game-room-code" id="game-room-code">------</div>
+            <div class="game-self-info">
+                <span class="game-self-avatar" id="game-self-avatar">🎵</span>
+                <span class="game-self-name" id="game-self-name">你</span>
+                <span class="game-self-score">
+                    <span id="game-self-score">0</span>分
+                </span>
+            </div>
+        </div>
+
+        <!-- 狀態區（依 buzzer 狀態切換 class） -->
+        <div class="game-status-area" id="game-status-area">
+
+            <!-- idle 狀態 -->
+            <div class="game-state game-state-idle" id="state-idle">
+                <div class="game-state-icon">🎵</div>
+                <div class="game-state-title">聆聽中</div>
+                <div class="game-state-sub">準備搶答！</div>
+            </div>
+
+            <!-- self-buzzing：自己搶到 -->
+            <div class="game-state game-state-self-buzzing" id="state-self-buzzing" style="display:none">
+                <div class="game-state-icon">✅</div>
+                <div class="game-state-title">你搶到了！</div>
+                <div class="game-state-sub">請大聲說出答案</div>
+                <div class="game-state-note">等待主持人判定...</div>
+            </div>
+
+            <!-- other-buzzing：別人搶到 -->
+            <div class="game-state game-state-other-buzzing" id="state-other-buzzing" style="display:none">
+                <div class="game-state-icon">⚡</div>
+                <div class="game-state-title" id="other-buzzing-title">其他人搶到了</div>
+                <div class="game-state-sub">等待主持人判定...</div>
+            </div>
+
+            <!-- judged-self：自己答對 -->
+            <div class="game-state game-state-judged-self" id="state-judged-self" style="display:none">
+                <div class="game-state-icon judged-anim">🎉</div>
+                <div class="game-state-title">答對了！</div>
+                <div class="game-state-sub" id="judged-self-pts"></div>
+                <div class="game-state-note">等待下一首</div>
+            </div>
+
+            <!-- judged-other：別人答對 -->
+            <div class="game-state game-state-judged-other" id="state-judged-other" style="display:none">
+                <div class="game-state-icon">🎉</div>
+                <div class="game-state-title" id="judged-other-title">答對了！</div>
+                <div class="game-state-sub">等待下一首</div>
+            </div>
+
+            <!-- locked（答錯倒數中）-->
+            <div class="game-state game-state-locked" id="state-locked" style="display:none">
+                <div class="game-state-icon">❌</div>
+                <div class="game-state-title" id="locked-title">答錯了</div>
+                <div class="game-state-countdown" id="locked-countdown">3</div>
+                <div class="game-state-sub">其他人開放搶答倒數</div>
+            </div>
+
+            <!-- waiting-next -->
+            <div class="game-state game-state-waiting" id="state-waiting" style="display:none">
+                <div class="game-state-icon">⏭</div>
+                <div class="game-state-title">跳過</div>
+                <div class="game-state-sub">等待下一首...</div>
+            </div>
+
+            <!-- locked-self（本題已答錯，無法搶答）-->
+            <div class="game-state game-state-locked-self" id="state-locked-self" style="display:none">
+                <div class="game-state-icon">🔒</div>
+                <div class="game-state-title">此題已答錯</div>
+                <div class="game-state-sub">下一首才能再搶答</div>
+            </div>
+
+        </div>
+
+        <!-- 搶答按鈕 -->
+        <div class="game-buzzer-area">
+            <button class="game-buzzer-btn" id="buzzer-btn" onclick="handleBuzzer()">
+                <span class="buzzer-icon">🔔</span>
+                <span class="buzzer-text" id="buzzer-text">搶答</span>
+            </button>
+            <div class="game-buzzer-hint" id="buzzer-hint"></div>
+        </div>
+
+        <!-- 排行榜 -->
+        <div class="game-leaderboard">
+            <div class="game-lb-title">分數板</div>
+            <div id="game-lb-list" class="game-lb-list"></div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/game.js"></script>
+
+</body>
+
+</html>

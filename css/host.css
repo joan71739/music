@@ -1,0 +1,452 @@
+/* ── host.css：主持人控制台 ── */
+
+/* ── 密碼驗證畫面 ── */
+
+#auth-view {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.host-auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: #141414;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.host-auth-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: rgba(29, 185, 84, 0.12);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.host-auth-icon .ti {
+    font-size: 32px;
+    color: var(--green);
+}
+
+.host-auth-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.host-auth-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: -0.6rem;
+}
+
+.host-auth-field {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* 共用 create-input 樣式已在 host-create.css，這裡補充 */
+.create-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.create-input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 0.8rem 3rem 0.8rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+}
+
+.create-input:focus {
+    border-color: var(--green);
+}
+
+.create-input::placeholder {
+    color: #444;
+}
+
+.create-eye-btn {
+    position: absolute;
+    right: 0.8rem;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    transition: color 0.2s;
+}
+
+.create-eye-btn:hover {
+    color: #aaa;
+}
+
+.create-error {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    font-size: 13px;
+    color: #e74c3c;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-green {
+    width: 100%;
+    padding: 0.9rem;
+    font-size: 16px;
+}
+
+.btn-green:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── 主控台畫面 ── */
+
+#host-view {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 80px;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ── 歌曲資訊列 ── */
+
+.host-track-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #111;
+    border-bottom: 1px solid var(--border);
+}
+
+.host-track-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.host-track-icon .ti {
+    font-size: 20px;
+    color: var(--green);
+}
+
+.host-track-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.host-track-artist {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.host-track-bar:not(.has-track) .host-track-name {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+/* ── 搶答狀態列 ── */
+
+.host-buzzer-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #0d0d0d;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.3s;
+}
+
+.host-buzzer-bar.bar-buzzing {
+    background: rgba(231, 76, 60, 0.08);
+}
+
+.host-buzzer-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s;
+}
+
+.dot-idle {
+    background: #333;
+}
+
+.dot-buzzing {
+    background: #e74c3c;
+    animation: pulse-dot 0.8s infinite alternate;
+}
+
+.dot-judged {
+    background: var(--green);
+}
+
+.dot-locked {
+    background: #f39c12;
+}
+
+.dot-skip {
+    background: #555;
+}
+
+@keyframes pulse-dot {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0.5;
+        transform: scale(0.7);
+    }
+}
+
+#host-buzzer-text {
+    font-size: 14px;
+    color: var(--subtle);
+    font-weight: 600;
+}
+
+/* ── 判定區 ── */
+
+.host-judge-section {
+    padding: 16px;
+}
+
+.host-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+.host-judge-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.host-judge-btn {
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 14px 8px;
+}
+
+.host-judge-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.host-judge-btn:not(:disabled):active {
+    transform: scale(0.94);
+}
+
+.host-judge-correct {
+    background: rgba(29, 185, 84, 0.15);
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    color: var(--green);
+}
+
+.host-judge-correct:not(:disabled):hover {
+    background: rgba(29, 185, 84, 0.25);
+}
+
+.judge-score {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.judge-label {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.host-judge-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.host-judge-wrong {
+    background: rgba(231, 76, 60, 0.12);
+    border: 1px solid rgba(231, 76, 60, 0.25);
+    color: #e74c3c;
+    font-size: 15px;
+    padding: 12px;
+}
+
+.host-judge-wrong:not(:disabled):hover {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+.host-judge-skip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid #2a2a2a;
+    color: var(--muted);
+    font-size: 15px;
+    padding: 12px;
+}
+
+.host-judge-skip:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--subtle);
+}
+
+/* ── 分隔線 ── */
+
+.host-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 16px;
+}
+
+/* ── 分數板 ── */
+
+.host-scores-section {
+    padding: 16px;
+    flex: 1;
+}
+
+.host-scores-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.host-no-players {
+    font-size: 13px;
+    color: #333;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.host-score-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.host-score-row.score-row-active {
+    border-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.06);
+}
+
+.host-score-rank {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.host-score-avatar {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.host-score-name {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.host-score-pts {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--green);
+    flex-shrink: 0;
+}
+
+.pts-label {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 2px;
+}
+
+/* ── Footer ── */
+
+.host-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: #0a0a0a;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    z-index: 10;
+}
+
+.host-footer-room {
+    font-size: 12px;
+    color: #333;
+    letter-spacing: 0.05em;
+}

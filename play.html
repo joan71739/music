@@ -175,6 +175,28 @@
   <!-- Toast -->
   <div id="played-toast"></div>
 
+  <!-- Firebase SDK（只在多人模式才載入，單人完全不碰） -->
+  <script>
+    (function () {
+      if (!new URLSearchParams(window.location.search).get('room')) return;
+      function loadScript(src, onload) {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = onload;
+        document.head.appendChild(s);
+      }
+      loadScript(
+        'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', () =>
+        loadScript(
+          'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js', () =>
+          loadScript('js/firebase.js', () => {
+            if (typeof initFirebase === 'function') initFirebase();
+          })
+        )
+      );
+    })();
+  </script>
+
   <script src="js/constants.js"></script>
   <script src="js/base.js"></script>
   <script src="js/auth.js"></script>

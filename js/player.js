@@ -4,6 +4,27 @@
  * 依賴：auth.js（getToken）、history.js（addToPlayedPlaylist）
  */
 
+// ── 多人模式：房間碼 & currentTrack 同步 ──
+const _roomCode = new URLSearchParams(window.location.search).get('room');
+
+async function syncCurrentTrack(name, artist, uri) {
+  if (!_roomCode) return;
+  try {
+    await currentTrackRef(_roomCode).set({ name, artist, uri });
+    await buzzerRef(_roomCode).set({
+      status: 'idle',
+      playerId: null,
+      playerName: null,
+      playerEmoji: null,
+      buzzerTime: null,
+      answeredWrong: [],
+    });
+  } catch (e) {
+    console.warn('syncCurrentTrack 失敗:', e);
+  }
+}
+// ─────────────────────────────────────────
+
 let currentTrackName = '';
 let currentArtistName = '';
 
@@ -32,10 +53,10 @@ function showView(name) {
 /* ── 狀態圓環 ── */
 
 function setStatus(state, text) {
-  const ring   = document.getElementById('status-ring');
-  const icon   = document.getElementById('status-ring-icon');
-  const pill   = document.getElementById('ring-pill');
-  const pState  = document.getElementById('ring-pill-state');
+  const ring = document.getElementById('status-ring');
+  const icon = document.getElementById('status-ring-icon');
+  const pill = document.getElementById('ring-pill');
+  const pState = document.getElementById('ring-pill-state');
   const pAction = document.getElementById('ring-pill-action');
 
   ring.classList.remove('playing', 'ended');
@@ -44,25 +65,25 @@ function setStatus(state, text) {
     ring.classList.add('playing');
     icon.className = 'ti ti-music';
     pill.style.display = 'flex';
-    pState.textContent  = '播放中 · ';
+    pState.textContent = '播放中 · ';
     pAction.textContent = '點我暫停';
   } else if (state === 'paused') {
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'flex';
-    pState.textContent  = '已暫停 · ';
+    pState.textContent = '已暫停 · ';
     pAction.textContent = '點我繼續';
   } else if (state === 'ended-timer') {
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'flex';
-    pState.textContent  = '時間到 · ';
+    pState.textContent = '時間到 · ';
     pAction.textContent = '點我從斷點繼續';
   } else if (state === 'ended-song') {
     ring.classList.add('ended');
     icon.className = 'ti ti-player-pause';
     pill.style.display = 'flex';
-    pState.textContent  = '播放完畢 · ';
+    pState.textContent = '播放完畢 · ';
     pAction.textContent = '點我重新播放';
   } else {
     // idle / ended
@@ -77,7 +98,7 @@ function setStatus(state, text) {
 function _showPlayPause(show) {
   const ring = document.getElementById('status-ring');
   if (show) ring.classList.add('clickable');
-  else      ring.classList.remove('clickable');
+  else ring.classList.remove('clickable');
 }
 
 /** 圓環點擊：根據三種狀態分流 */
@@ -146,10 +167,10 @@ function _resumeTimer() {
 function _runTimer(durationMs) {
   clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
-  _timerRemaining  = durationMs;
-  _timerStartedAt  = Date.now();
+  _timerRemaining = durationMs;
+  _timerStartedAt = Date.now();
 
-  const bar   = document.getElementById('timer-bar');
+  const bar = document.getElementById('timer-bar');
   const label = document.getElementById('timer-label');
 
   requestAnimationFrame(() => {
@@ -170,8 +191,8 @@ function _runTimer(durationMs) {
 
   _timerHandle = setTimeout(async () => {
     clearInterval(_tickHandle);
-    _isTimerDone    = true;
-    _endedBySong    = false;
+    _isTimerDone = true;
+    _endedBySong = false;
     _timerStartedAt = 0;
 
     // 立即停止 polling，避免雙重觸發
@@ -217,10 +238,10 @@ function startTimer(durationMs) {
 function _resetTimer() {
   clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
-  _isTimerDone    = false;
-  _endedBySong    = false;
-  _pausedAtMs     = null;
-  _isPaused       = false;
+  _isTimerDone = false;
+  _endedBySong = false;
+  _pausedAtMs = null;
+  _isPaused = false;
   _timerRemaining = 0;
   _timerStartedAt = 0;
   _showPlayPause(false);
@@ -283,11 +304,11 @@ function _onSongEnded() {
 
 function toggleReveal() {
   _isRevealed = !_isRevealed;
-  const hidden   = document.getElementById('answer-hidden');
+  const hidden = document.getElementById('answer-hidden');
   const revealed = document.getElementById('answer-revealed');
 
   if (_isRevealed) {
-    document.getElementById('answer-song-name').textContent   = currentTrackName  || '（未知歌曲）';
+    document.getElementById('answer-song-name').textContent = currentTrackName || '（未知歌曲）';
     document.getElementById('answer-artist-name').textContent = currentArtistName || '';
     hidden.classList.add('hide');
     revealed.classList.add('show');
@@ -301,9 +322,9 @@ function _resetAnswer() {
   _isRevealed = false;
   document.getElementById('answer-hidden').classList.remove('hide');
   document.getElementById('answer-revealed').classList.remove('show');
-  document.getElementById('answer-song-name').textContent   = '';
+  document.getElementById('answer-song-name').textContent = '';
   document.getElementById('answer-artist-name').textContent = '';
-  currentTrackName  = '';
+  currentTrackName = '';
   currentArtistName = '';
 }
 
@@ -322,7 +343,7 @@ async function _fetchTrackInfo(uri) {
     });
     if (r.ok) {
       const d = await r.json();
-      currentTrackName  = d.name || '';
+      currentTrackName = d.name || '';
       currentArtistName = d.artists?.map(a => a.name).join(', ') || '';
     }
   } catch (e) {
@@ -346,7 +367,7 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
   setStatus('idle', '連線中...');
   document.getElementById('mode-badge').classList.remove('show');
 
-  _currentUri     = uri;
+  _currentUri = uri;
   _currentStartMs = startMs || 0;
 
   const t = await getToken();
@@ -377,7 +398,7 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
     return;
   }
 
-  const dev  = devices.find(d => d.is_active) || devices[0];
+  const dev = devices.find(d => d.is_active) || devices[0];
   const body = { uris: [uri] };
   if (startMs && startMs > 0) body.position_ms = startMs;
 
@@ -419,6 +440,9 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
       // 加入今日歌單（不影響播放流程，fire-and-forget）
       addToPlayedPlaylist(uri);
 
+      // 多人模式：同步 currentTrack 到 Firebase（延遲 1 秒讓 _fetchTrackInfo 跑完）
+      setTimeout(() => syncCurrentTrack(currentTrackName, currentArtistName, uri), 1000);
+
     } else {
       setStatus('idle', '播放失敗（狀態碼 ' + pr.status + '）');
     }
@@ -436,7 +460,7 @@ async function doDebug() {
   box.style.display = 'block';
   box.textContent = '測試中...\n';
 
-  const t   = localStorage.getItem('spotify_token');
+  const t = localStorage.getItem('spotify_token');
   const exp = localStorage.getItem('spotify_expires');
   box.textContent += 'Token: ' + (t ? t.substring(0, 15) + '...' : '無') + '\n';
   box.textContent += 'Token 有效: ' + (exp ? (Date.now() < parseInt(exp, 10) ? '是' : '已過期') : '無') + '\n';
