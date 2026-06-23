@@ -1,0 +1,153 @@
+/* ── wait.css（玩家等待頁） ── */
+
+#wait-player-view {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 2rem;
+}
+
+/* 自己的頭像 */
+.wait-self {
+  text-align: center;
+}
+
+.wait-self-avatar {
+  font-size: 72px;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.wait-self-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.wait-self-room {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.wait-self-room span {
+  color: var(--green);
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+/* 狀態列 */
+.wait-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141414;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 0.5rem 1.2rem;
+}
+
+.wait-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: dpulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes dpulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+
+#wait-status-text {
+  font-size: 13px;
+  color: var(--subtle);
+}
+
+/* 玩家列表 */
+.wait-others-section {
+  width: 100%;
+}
+
+.wait-others-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.wait-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wait-no-one {
+  text-align: center;
+  font-size: 14px;
+  color: #333;
+  padding: 1rem 0;
+}
+
+.wait-player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #141414;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.wait-player-row.is-me {
+  border-color: rgba(29, 185, 84, 0.4);
+  background: rgba(29, 185, 84, 0.06);
+}
+
+.wait-player-emoji {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wait-player-name {
+  font-size: 15px;
+  color: var(--subtle);
+  flex: 1;
+}
+
+.wait-player-row.is-me .wait-player-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.wait-me-badge {
+  font-size: 11px;
+  color: var(--green);
+  background: rgba(29, 185, 84, 0.12);
+  border: 1px solid rgba(29, 185, 84, 0.25);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
