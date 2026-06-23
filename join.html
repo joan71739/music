@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 加入房間</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/join.css">
+</head>
+<body>
+
+<div id="join-view">
+
+  <div class="join-header">
+    <div class="join-logo-icon">
+      <i class="ti ti-door-enter" aria-hidden="true"></i>
+    </div>
+    <div class="join-title">加入房間</div>
+    <div class="join-room-badge" id="room-badge">------</div>
+  </div>
+
+  <div class="join-card">
+
+    <!-- 名字輸入 -->
+    <div class="join-field">
+      <label class="join-label" for="player-name">你的暱稱</label>
+      <input
+        id="player-name"
+        type="text"
+        class="join-input"
+        placeholder="輸入名字"
+        maxlength="10"
+        autocomplete="off"
+      >
+    </div>
+
+    <!-- Emoji 頭像選擇 -->
+    <div class="join-field">
+      <div class="join-label">選擇頭像</div>
+      <div class="join-avatar-grid" id="avatar-grid"></div>
+    </div>
+
+    <div id="join-error" class="join-error" style="display:none"></div>
+
+    <button class="btn-green" id="join-btn" onclick="handleJoin()">加入！</button>
+
+  </div>
+
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+
+<script>
+  const AVATARS = ['🦊','🐼','🐯','🐺','🦁','🐻','🐸','🐧','🦋','🐙','🦄','🐲'];
+
+  const params   = new URLSearchParams(window.location.search);
+  const roomCode = params.get('room');
+
+  if (!roomCode) window.location.href = 'index.html';
+
+  initFirebase();
+
+  let selectedAvatar = AVATARS[0];
+
+  /* ── 初始化 ── */
+
+  function init() {
+    document.getElementById('room-badge').textContent = roomCode;
+
+    // 先確認房間存在且 status = waiting / playing
+    roomRef(roomCode).once('value', snap => {
+      if (!snap.exists()) {
+        showError('找不到這個房間，可能已結束');
+        document.getElementById('join-btn').disabled = true;
+      }
+    });
+
+    // 渲染頭像格
+    const grid = document.getElementById('avatar-grid');
+    grid.innerHTML = AVATARS.map((emoji, i) => `
+      <button
+        class="avatar-btn ${i === 0 ? 'selected' : ''}"
+        data-emoji="${emoji}"
+        onclick="selectAvatar(this, '${emoji}')"
+        type="button"
+        aria-label="${emoji}"
+      >${emoji}</button>
+    `).join('');
+
+    // 若之前加入過，預填名字
+    const savedName = localStorage.getItem('player_name');
+    if (savedName) {
+      document.getElementById('player-name').value = savedName;
+    }
+
+    // 若之前選過頭像，預選
+    const savedAvatar = localStorage.getItem('player_avatar');
+    if (savedAvatar && AVATARS.includes(savedAvatar)) {
+      selectAvatarByEmoji(savedAvatar);
+    }
+  }
+
+  function selectAvatar(btn, emoji) {
+    document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedAvatar = emoji;
+  }
+
+  function selectAvatarByEmoji(emoji) {
+    const btn = document.querySelector(`.avatar-btn[data-emoji="${emoji}"]`);
+    if (btn) selectAvatar(btn, emoji);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('join-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('join-error').style.display = 'none';
+  }
+
+  /* ── 加入房間 ── */
+
+  async function handleJoin() {
+    hideError();
+    const name = document.getElementById('player-name').value.trim();
+
+    if (!name) {
+      showError('請輸入暱稱');
+      document.getElementById('player-name').focus();
+      return;
+    }
+
+    const btn = document.getElementById('join-btn');
+    btn.disabled = true;
+    btn.textContent = '加入中...';
+
+    try {
+      // 取得或產生 player_uid
+      let uid = localStorage.getItem('player_uid');
+      if (!uid) {
+        uid = crypto.randomUUID();
+        localStorage.setItem('player_uid', uid);
+      }
+
+      // 儲存偏好
+      localStorage.setItem('player_name',   name);
+      localStorage.setItem('player_avatar', selectedAvatar);
+
+      // 確認房間存在
+      const roomSnap = await roomRef(roomCode).once('value');
+      if (!roomSnap.exists()) {
+        showError('找不到這個房間');
+        btn.disabled = false;
+        btn.textContent = '加入！';
+        return;
+      }
+
+      // 防重複加入：檢查是否已有相同 uid
+      const playerRef  = playersRef(roomCode).child(uid);
+      const playerSnap = await playerRef.once('value');
+
+      if (playerSnap.exists()) {
+        // 已存在 → 更新名字/頭像
+        await playerRef.update({ name, avatar: selectedAvatar });
+      } else {
+        // 新玩家 → 建立節點
+        await playerRef.set({
+          name,
+          avatar:   selectedAvatar,
+          score:    0,
+          joinedAt: firebase.database.ServerValue.TIMESTAMP,
+        });
+      }
+
+      // 儲存本次的 room 和 uid
+      localStorage.setItem('player_room', roomCode);
+
+      // 跳轉等待頁
+      window.location.href = `wait.html?room=${roomCode}`;
+
+    } catch (e) {
+      console.error('加入房間失敗:', e);
+      showError('加入失敗：' + (e.message || '請檢查網路'));
+      btn.disabled = false;
+      btn.textContent = '加入！';
+    }
+  }
+
+  // Enter 送出
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('player-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleJoin();
+    });
+  });
+
+  init();
+</script>
+
+</body>
+</html>
