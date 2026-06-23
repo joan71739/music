@@ -98,9 +98,16 @@
 
 .wait-qr-url {
   font-size: 10px;
-  color: #444;
+  color: #1DB954;
+  text-decoration: none;
+  transition: color 0.2s;
   word-break: break-all;
   text-align: center;
+}
+
+.wait-qr-url:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 /* ── 玩家列表 ── */
