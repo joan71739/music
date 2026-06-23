@@ -1,85 +1,52 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>金曲歌王</title>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/home.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/home.css">
 </head>
-
 <body>
-
-    <div id="home-view">
-
-        <div class="home-logo">
-            <div class="home-logo-icon">
-                <i class="ti ti-vinyl" aria-hidden="true"></i>
-            </div>
-            <div class="home-title">金曲歌王</div>
-            <div class="home-sub">選擇玩法開始遊戲</div>
-        </div>
-
-        <div class="mode-list">
-
-            <a href="play.html?mode=name" class="mode-card mode-active">
-                <div class="mode-icon">
-                    <i class="ti ti-music" aria-hidden="true"></i>
-                </div>
-                <div class="mode-info">
-                    <div class="mode-name">猜歌名</div>
-                    <div class="mode-desc">NFC 感應 · 主題包選歌</div>
-                </div>
-                <i class="ti ti-chevron-right mode-arr" aria-hidden="true"></i>
-            </a>
-
-            <a href="play.html?mode=intro" class="mode-card mode-active">
-                <div class="mode-icon">
-                    <i class="ti ti-player-play" aria-hidden="true"></i>
-                </div>
-                <div class="mode-info">
-                    <div class="mode-name">猜前奏</div>
-                    <div class="mode-desc">NFC 感應 · 主題包選歌</div>
-                </div>
-                <i class="ti ti-chevron-right mode-arr" aria-hidden="true"></i>
-            </a>
-
-            <div class="mode-card mode-disabled">
-                <div class="mode-icon">
-                    <i class="ti ti-blockquote" aria-hidden="true"></i>
-                </div>
-                <div class="mode-info">
-                    <div class="mode-name">猜歌詞</div>
-                    <div class="mode-desc">需有同步歌詞</div>
-                </div>
-                <span class="mode-badge">開發中</span>
-            </div>
-
-        </div>
-
-        <div class="home-footer">
-            <span>金曲歌王 2+</span>
-            <span class="home-footer-dot">·</span>
-            <span>Powered by Spotify</span>
-            <span class="home-footer-dot">·</span>
-            <button class="home-logout-btn" onclick="homeLogout()" aria-label="登出">
-                <i class="ti ti-logout" aria-hidden="true"></i>登出
-            </button>
-        </div>
-
+  <div id="home-view">
+    <div class="home-logo">
+      <div class="home-logo-icon">
+        <i class="ti ti-vinyl" aria-hidden="true"></i>
+      </div>
+      <div class="home-title">金曲歌王</div>
+      <div class="home-sub">選擇模式開始遊戲</div>
     </div>
 
-    <!-- Toast（id 與 play.html 區分，但樣式共用 base.css） -->
-    <div id="home-toast"></div>
+    <div class="mode-list">
+      <a href="mode-select.html" class="mode-card mode-active">
+        <div class="mode-icon">
+          <i class="ti ti-user" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">單獨遊玩</div>
+          <div class="mode-desc">一個人或共用一台裝置</div>
+        </div>
+        <i class="ti ti-chevron-right mode-arr" aria-hidden="true"></i>
+      </a>
 
-    <script src="js/constants.js"></script>
-    <script src="js/base.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/home.js"></script>
+      <div class="mode-card mode-disabled">
+        <div class="mode-icon">
+          <i class="ti ti-users" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">多人遊玩</div>
+          <div class="mode-desc">各自手機搶答，即時競賽</div>
+        </div>
+        <span class="mode-badge">Phase 2</span>
+      </div>
+    </div>
 
+    <div class="home-footer">
+      <span>金曲歌王 2+</span>
+      <span class="home-footer-dot">·</span>
+      <span>Powered by Spotify</span>
+    </div>
+  </div>
 </body>
-
 </html>
