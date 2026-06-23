@@ -76,6 +76,12 @@
       if (!snap.exists()) {
         showError('找不到這個房間，可能已結束');
         document.getElementById('join-btn').disabled = true;
+      } else {
+        const status = snap.val()?.status;
+        if (status !== 'waiting') {
+          showError('遊戲已開始，無法加入');
+          document.getElementById('join-btn').disabled = true;
+        }
       }
     });
 
