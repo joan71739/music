@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 選擇玩法</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+  <div id="home-view">
+    <div class="home-logo">
+      <div class="home-logo-icon">
+        <i class="ti ti-music" aria-hidden="true"></i>
+      </div>
+      <div class="home-title">選擇玩法</div>
+      <div class="home-sub" id="mode-sub">選好玩法後自動跳登入</div>
+    </div>
+
+    <div class="mode-list">
+
+      <div class="mode-card mode-active" onclick="goPlay('name')">
+        <div class="mode-icon">
+          <i class="ti ti-music" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">猜歌名</div>
+          <div class="mode-desc">NFC 感應 · 主題包選歌</div>
+        </div>
+        <i class="ti ti-chevron-right mode-arr" aria-hidden="true"></i>
+      </div>
+
+      <div class="mode-card mode-active" onclick="goPlay('intro')">
+        <div class="mode-icon">
+          <i class="ti ti-player-play" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">猜前奏</div>
+          <div class="mode-desc">NFC 感應 · 主題包選歌</div>
+        </div>
+        <i class="ti ti-chevron-right mode-arr" aria-hidden="true"></i>
+      </div>
+
+      <div class="mode-card mode-disabled">
+        <div class="mode-icon">
+          <i class="ti ti-blockquote" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">猜歌詞</div>
+          <div class="mode-desc">需有同步歌詞</div>
+        </div>
+        <span class="mode-badge">開發中</span>
+      </div>
+
+      <div class="mode-card mode-disabled">
+        <div class="mode-icon">
+          <i class="ti ti-microphone" aria-hidden="true"></i>
+        </div>
+        <div class="mode-info">
+          <div class="mode-name">猜音準</div>
+          <div class="mode-desc">哼唱對比</div>
+        </div>
+        <span class="mode-badge">開發中</span>
+      </div>
+
+    </div>
+
+    <div class="home-footer">
+      <button class="home-logout-btn" onclick="history.back()" aria-label="返回">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>返回
+      </button>
+    </div>
+  </div>
+
+  <script src="js/constants.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/mode-select.js"></script>
+</body>
+</html>
