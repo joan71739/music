@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 建立房間</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/host-create.css">
+</head>
+<body>
+
+<div id="create-view">
+
+  <div class="create-logo">
+    <div class="create-logo-icon">
+      <i class="ti ti-users" aria-hidden="true"></i>
+    </div>
+    <div class="create-title">建立多人房間</div>
+    <div class="create-sub">設定主持人密碼，建立後把房間碼給大家掃</div>
+  </div>
+
+  <div class="create-card">
+
+    <div class="create-field">
+      <label class="create-label" for="host-password">主持人密碼</label>
+      <div class="create-input-wrap">
+        <input
+          id="host-password"
+          type="password"
+          class="create-input"
+          placeholder="輸入你想要的密碼"
+          maxlength="20"
+          autocomplete="new-password"
+        >
+        <button class="create-eye-btn" id="eye-btn" onclick="togglePasswordVisibility()" type="button" aria-label="顯示/隱藏密碼">
+          <i class="ti ti-eye" id="eye-icon" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="create-hint">主持人控制台（手機端）進入時需要輸入此密碼</div>
+    </div>
+
+    <div id="create-error" class="create-error" style="display:none"></div>
+
+    <button class="btn-green" id="create-btn" onclick="handleCreate()">
+      <span id="create-btn-text">建立房間</span>
+    </button>
+
+  </div>
+
+  <div class="create-footer">
+    <button class="home-logout-btn" onclick="history.back()" aria-label="返回">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>返回
+    </button>
+  </div>
+
+</div>
+
+<!-- Firebase SDK（compat 版，CDN） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+<script>
+  // host-create 頁一定用 Firebase，直接初始化
+  initFirebase();
+
+  function togglePasswordVisibility() {
+    const input   = document.getElementById('host-password');
+    const icon    = document.getElementById('eye-icon');
+    const showing = input.type === 'text';
+    input.type    = showing ? 'password' : 'text';
+    icon.className = showing ? 'ti ti-eye' : 'ti ti-eye-off';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('create-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('create-error').style.display = 'none';
+  }
+
+  async function handleCreate() {
+    hideError();
+    const password = document.getElementById('host-password').value.trim();
+
+    if (!password) {
+      showError('請輸入主持人密碼');
+      document.getElementById('host-password').focus();
+      return;
+    }
+    if (password.length < 2) {
+      showError('密碼至少 2 個字元');
+      return;
+    }
+
+    const btn     = document.getElementById('create-btn');
+    const btnText = document.getElementById('create-btn-text');
+    btn.disabled  = true;
+    btnText.textContent = '建立中...';
+
+    try {
+      // 刪除舊房間
+      await deleteOldRoom();
+
+      // 產生新房間碼 + hash 密碼
+      const roomCode     = generateRoomCode();
+      const passwordHash = await hashPassword(password);
+
+      // 寫入 Firebase
+      await createRoom(roomCode, passwordHash);
+
+      // 記錄到 localStorage
+      localStorage.setItem('host_room_code',     roomCode);
+      localStorage.setItem('host_password_hash', passwordHash);
+
+      // 跳轉
+      window.location.href = `host-wait.html?room=${roomCode}`;
+
+    } catch (e) {
+      console.error('建立房間失敗:', e);
+      showError('建立失敗：' + (e.message || '請檢查網路或 Firebase 設定'));
+      btn.disabled = false;
+      btnText.textContent = '建立房間';
+    }
+  }
+
+  // 按 Enter 直接建立
+  document.getElementById('host-password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleCreate();
+  });
+</script>
+
+</body>
+</html>
