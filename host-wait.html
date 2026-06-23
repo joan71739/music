@@ -103,6 +103,12 @@
       const players = snap.val() || {};
       _renderPlayers(players);
     });
+
+    roomRef(roomCode).child('status').on('value', snap => {
+      if (snap.val() === 'playing') {
+        window.location.href = `mode-select.html?room=${roomCode}`;
+      }
+    });
   }
 
   function _makeQR(containerId, url) {
