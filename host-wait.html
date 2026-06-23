@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 等待加入</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/host-wait.css">
+  <!-- QR Code 產生器 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="wait-view">
+
+  <!-- 頂部：房間碼 + 狀態 -->
+  <div class="wait-header">
+    <div class="wait-room-label">房間碼</div>
+    <div class="wait-room-code" id="room-code-display">------</div>
+    <div class="wait-room-sub">玩家掃 QR Code 加入</div>
+  </div>
+
+  <!-- QR Code 區：玩家用 + 主控台用 -->
+  <div class="wait-qr-row">
+
+    <div class="wait-qr-card">
+      <div class="wait-qr-title">
+        <i class="ti ti-user-plus" aria-hidden="true"></i>
+        玩家加入
+      </div>
+      <div id="qr-player" class="wait-qr-box"></div>
+      <div class="wait-qr-url" id="qr-player-url"></div>
+    </div>
+
+    <div class="wait-qr-card wait-qr-card--host">
+      <div class="wait-qr-title">
+        <i class="ti ti-shield" aria-hidden="true"></i>
+        主持人控制台
+      </div>
+      <div id="qr-host" class="wait-qr-box"></div>
+      <div class="wait-qr-url" id="qr-host-url"></div>
+    </div>
+
+  </div>
+
+  <!-- 玩家列表 -->
+  <div class="wait-players-section">
+    <div class="wait-players-header">
+      <span id="player-count-label">目前 0 人已加入</span>
+    </div>
+    <div id="players-grid" class="wait-players-grid">
+      <div class="wait-no-player">等待玩家加入...</div>
+    </div>
+  </div>
+
+  <!-- 開始遊戲按鈕 -->
+  <div class="wait-footer">
+    <button class="btn-green" id="start-btn" onclick="handleStart()" disabled>
+      <span id="start-btn-text">等待玩家加入</span>
+    </button>
+    <div class="wait-footer-hint">至少 1 位玩家加入後才能開始</div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+
+<script>
+  const params   = new URLSearchParams(window.location.search);
+  const roomCode = params.get('room');
+
+  // 沒有 room 參數就踢回首頁
+  if (!roomCode) {
+    window.location.href = 'index.html';
+  }
+
+  initFirebase();
+
+  const BASE_URL = window.location.origin + window.location.pathname.replace('host-wait.html', '');
+
+  /* ── 初始化 ── */
+
+  function init() {
+    // 顯示房間碼
+    document.getElementById('room-code-display').textContent = roomCode;
+
+    // 產生 QR Code
+    const playerUrl = `${BASE_URL}join.html?room=${roomCode}`;
+    const hostUrl   = `${BASE_URL}host.html?room=${roomCode}`;
+
+    document.getElementById('qr-player-url').textContent = `join.html?room=${roomCode}`;
+    document.getElementById('qr-host-url').textContent   = `host.html?room=${roomCode}`;
+
+    _makeQR('qr-player', playerUrl);
+    _makeQR('qr-host',   hostUrl);
+
+    // 監聽玩家列表
+    playersRef(roomCode).on('value', snap => {
+      const players = snap.val() || {};
+      _renderPlayers(players);
+    });
+  }
+
+  function _makeQR(containerId, url) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    new QRCode(el, {
+      text:          url,
+      width:         150,
+      height:        150,
+      colorDark:     '#ffffff',
+      colorLight:    '#141414',
+      correctLevel:  QRCode.CorrectLevel.M,
+    });
+  }
+
+  /* ── 玩家列表渲染 ── */
+
+  function _renderPlayers(players) {
+    const grid  = document.getElementById('players-grid');
+    const label = document.getElementById('player-count-label');
+    const btn   = document.getElementById('start-btn');
+    const btnTx = document.getElementById('start-btn-text');
+
+    const list = Object.values(players);
+    label.textContent = `目前 ${list.length} 人已加入`;
+
+    if (list.length === 0) {
+      grid.innerHTML = '<div class="wait-no-player">等待玩家加入...</div>';
+      btn.disabled   = true;
+      btnTx.textContent = '等待玩家加入';
+      return;
+    }
+
+    grid.innerHTML = list
+      .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))
+      .map(p => `
+        <div class="wait-player-card">
+          <div class="wait-player-avatar">${p.avatar || '🎵'}</div>
+          <div class="wait-player-name">${_esc(p.name || '未知')}</div>
+        </div>
+      `).join('');
+
+    btn.disabled  = false;
+    btnTx.textContent = `開始遊戲（${list.length} 人）`;
+  }
+
+  /* ── 開始遊戲 ── */
+
+  async function handleStart() {
+    const btn   = document.getElementById('start-btn');
+    const btnTx = document.getElementById('start-btn-text');
+    btn.disabled = true;
+    btnTx.textContent = '開始中...';
+
+    try {
+      await roomRef(roomCode).update({ status: 'playing' });
+      // 電視端跳到選玩法
+      window.location.href = `mode-select.html?room=${roomCode}`;
+    } catch (e) {
+      console.error('開始遊戲失敗:', e);
+      btn.disabled  = false;
+      btnTx.textContent = `開始遊戲`;
+    }
+  }
+
+  /* ── HTML 跳脫 ── */
+  function _esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  init();
+</script>
+
+</body>
+</html>
