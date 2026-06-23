@@ -156,21 +156,23 @@
 /* 返回按鈕 */
 .home-logout-btn {
   background: none;
-  border: none;
-  color: #333;
-  font-size: 12px;
+  border: 1px solid #333;
+  color: #888;
+  font-size: 14px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0;
-  transition: color 0.2s;
+  gap: 6px;
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  transition: border-color 0.2s, color 0.2s;
 }
 
 .home-logout-btn:hover {
-  color: #666;
+  border-color: #555;
+  color: #ccc;
 }
 
 .home-logout-btn .ti {
-  font-size: 14px;
+  font-size: 15px;
 }
