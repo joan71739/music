@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 等待開始</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/wait.css">
+</head>
+<body>
+
+<div id="wait-player-view">
+
+  <!-- 自己的頭像 + 名字 -->
+  <div class="wait-self">
+    <div class="wait-self-avatar" id="self-avatar">🎵</div>
+    <div class="wait-self-name" id="self-name">你</div>
+    <div class="wait-self-room">
+      房間 <span id="self-room-code">------</span>
+    </div>
+  </div>
+
+  <!-- 狀態提示 -->
+  <div class="wait-status">
+    <div class="wait-status-dot"></div>
+    <span id="wait-status-text">等待主持人開始遊戲...</span>
+  </div>
+
+  <!-- 其他玩家 -->
+  <div class="wait-others-section">
+    <div class="wait-others-label">目前玩家</div>
+    <div id="wait-players-list" class="wait-players-list"></div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+
+<script>
+  const params   = new URLSearchParams(window.location.search);
+  const roomCode = params.get('room');
+
+  if (!roomCode) window.location.href = 'index.html';
+
+  initFirebase();
+
+  const myUid    = localStorage.getItem('player_uid');
+  const myName   = localStorage.getItem('player_name')   || '玩家';
+  const myAvatar = localStorage.getItem('player_avatar') || '🎵';
+
+  /* ── 初始化 ── */
+
+  function init() {
+    // 顯示自己的資料
+    document.getElementById('self-avatar').textContent    = myAvatar;
+    document.getElementById('self-name').textContent      = myName;
+    document.getElementById('self-room-code').textContent = roomCode;
+
+    // 監聽玩家列表
+    playersRef(roomCode).on('value', snap => {
+      _renderPlayers(snap.val() || {});
+    });
+
+    // 監聽房間狀態 → playing 時跳轉
+    roomRef(roomCode).child('status').on('value', snap => {
+      const status = snap.val();
+      if (status === 'playing') {
+        // 跳到玩家搶答畫面（Phase 3 才開發，先跳首頁）
+        window.location.href = `game.html?room=${roomCode}`;
+      } else if (status === null) {
+        // 房間已被刪除
+        document.getElementById('wait-status-text').textContent = '房間已結束';
+      }
+    });
+  }
+
+  /* ── 渲染玩家列表 ── */
+
+  function _renderPlayers(players) {
+    const list  = document.getElementById('wait-players-list');
+    const items = Object.entries(players)
+      .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+
+    if (items.length === 0) {
+      list.innerHTML = '<div class="wait-no-one">只有你在這裡...</div>';
+      return;
+    }
+
+    list.innerHTML = items.map(([uid, p]) => `
+      <div class="wait-player-row ${uid === myUid ? 'is-me' : ''}">
+        <span class="wait-player-emoji">${p.avatar || '🎵'}</span>
+        <span class="wait-player-name">${_esc(p.name || '未知')}</span>
+        ${uid === myUid ? '<span class="wait-me-badge">你</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function _esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  init();
+</script>
+
+</body>
+</html>
