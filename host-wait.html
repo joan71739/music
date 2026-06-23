@@ -82,6 +82,9 @@
 
   const BASE_URL = window.location.origin + window.location.pathname.replace('host-wait.html', '');
 
+  // ── Bug 4 修正：用 flag 確保只跳轉一次 ──
+  let _jumping = false;
+
   /* ── 初始化 ── */
 
   function init() {
@@ -104,8 +107,10 @@
       _renderPlayers(players);
     });
 
+    // ── Bug 4 修正：跳轉統一由這裡負責，handleStart() 不再自己跳 ──
     roomRef(roomCode).child('status').on('value', snap => {
-      if (snap.val() === 'playing') {
+      if (snap.val() === 'playing' && !_jumping) {
+        _jumping = true;
         window.location.href = `mode-select.html?room=${roomCode}`;
       }
     });
@@ -155,7 +160,9 @@
     btnTx.textContent = `開始遊戲（${list.length} 人）`;
   }
 
-  /* ── 開始遊戲 ── */
+  /* ── 開始遊戲 ──
+     只負責寫 Firebase，不自己跳轉。
+     跳轉由上方 status 監聽器統一處理，避免雙重跳轉。 */
 
   async function handleStart() {
     const btn   = document.getElementById('start-btn');
@@ -165,8 +172,7 @@
 
     try {
       await roomRef(roomCode).update({ status: 'playing' });
-      // 電視端跳到選玩法
-      window.location.href = `mode-select.html?room=${roomCode}`;
+      // ✅ 不在這裡跳轉，由 .on('value') 監聽器負責
     } catch (e) {
       console.error('開始遊戲失敗:', e);
       btn.disabled  = false;
