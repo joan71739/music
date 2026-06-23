@@ -8,13 +8,13 @@
 
 // ── 請把這裡換成你的 Firebase 專案設定 ──
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId:         "YOUR_PROJECT",
-  storageBucket:     "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID",
+  apiKey:            "AIzaSyCjRHrS10zj5ga7wOh8cI1wPFSyUv-aU_s",
+  authDomain:        "music-54eeb.firebaseapp.com",
+  databaseURL:       "https://music-54eeb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "music-54eeb",
+  storageBucket:     "music-54eeb.firebasestorage.app",
+  messagingSenderId: "1078805338803",
+  appId:             "1:1078805338803:web:711e4dd97bdba09fb9eec6",
 };
 // ─────────────────────────────────────────
 
