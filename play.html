@@ -98,10 +98,29 @@
         </div>
         <div id="status-text">靠近 NFC 卡開始播放</div>
 
-        <!-- 多人模式：搶答狀態 + 分數板（room 參數存在才顯示） -->
+        <!-- 多人模式：搶答狀態 + 判定按鈕 + 分數板（room 參數存在才顯示） -->
         <div id="play-multi-panel" style="display:none">
+
+          <!-- 搶答狀態列 -->
           <div id="play-buzzer-status"></div>
+
+          <!-- 判定按鈕區（buzzing 時啟用） -->
+          <div id="play-judge-panel">
+            <div class="play-judge-btns">
+              <button class="play-judge-btn play-judge-correct" id="pj-btn-1" onclick="playJudgeCorrect(1)"
+                disabled>+1</button>
+              <button class="play-judge-btn play-judge-correct" id="pj-btn-2" onclick="playJudgeCorrect(2)"
+                disabled>+2</button>
+              <button class="play-judge-btn play-judge-correct" id="pj-btn-3" onclick="playJudgeCorrect(3)"
+                disabled>+3</button>
+              <button class="play-judge-btn play-judge-wrong" id="pj-btn-wrong" onclick="playJudgeWrong()" disabled>✗
+                答錯</button>
+            </div>
+          </div>
+
+          <!-- 常駐分數板 -->
           <div id="play-scoreboard"></div>
+
         </div>
       </div>
 

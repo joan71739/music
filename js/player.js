@@ -87,169 +87,175 @@ function setStatus(state, text) {
     pAction.textContent = '點我重新播放';
   } else {
     // idle / ended
-    ring.classList.add('ended');
     icon.className = 'ti ti-nfc';
     pill.style.display = 'none';
   }
 
-  document.getElementById('status-text').textContent = text;
+  const statusText = document.getElementById('status-text');
+  if (text && statusText) statusText.textContent = text;
 }
+
+/* ── 播放/暫停 按鈕顯示控制 ── */
 
 function _showPlayPause(show) {
-  const ring = document.getElementById('status-ring');
-  if (show) ring.classList.add('clickable');
-  else ring.classList.remove('clickable');
+  const btn = document.getElementById('btn-next');
+  if (btn) btn.style.display = show ? 'flex' : 'none';
 }
 
-/** 圓環點擊：根據三種狀態分流 */
-function ringTogglePlayPause() {
-  if (!document.getElementById('status-ring').classList.contains('clickable')) return;
+/* ── 圓環點擊：播放/暫停 切換 ── */
 
-  if (_isTimerDone && _endedBySong) {
-    if (_currentUri) playTrack(_currentUri, _currentStartMs, null);
-    return;
-  }
-
-  if (_isTimerDone && !_endedBySong) {
-    if (_currentUri && _pausedAtMs !== null) {
-      playTrack(_currentUri, _pausedAtMs, null, true);
+async function ringTogglePlayPause() {
+  if (_isTimerDone || _endedBySong) {
+    // 時間到或播完 → 從斷點接續
+    if (_pausedAtMs !== null && _currentUri) {
+      await playTrack(_currentUri, _pausedAtMs, null, true);
+    } else if (_currentUri) {
+      await playTrack(_currentUri, _currentStartMs, null, false);
     }
     return;
   }
 
-  _togglePlayPause();
+  if (_isPaused) {
+    await _resumePlay();
+  } else {
+    await _pausePlay();
+  }
 }
 
-async function _togglePlayPause() {
-  if (_isTimerDone) return;
+async function _pausePlay() {
   const t = await getToken();
   if (!t) return;
-
-  if (_isPaused) {
-    await fetch('https://api.spotify.com/v1/me/player/play', {
-      method: 'PUT', headers: { Authorization: 'Bearer ' + t },
-    });
-    _isPaused = false;
-    setStatus('playing', '播放中');
-    _resumeTimer();
-  } else {
+  try {
     await fetch('https://api.spotify.com/v1/me/player/pause', {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t },
     });
     _isPaused = true;
-    setStatus('paused', '已暫停');
     _pauseTimer();
+    setStatus('paused', '已暫停');
+  } catch (e) {
+    console.error('pause error:', e);
+  }
+}
+
+async function _resumePlay() {
+  const t = await getToken();
+  if (!t) return;
+  try {
+    await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT', headers: { Authorization: 'Bearer ' + t },
+    });
+    _isPaused = false;
+    _resumeTimer();
+    setStatus('playing', '播放中');
+  } catch (e) {
+    console.error('resume error:', e);
   }
 }
 
 /* ── 計時器 ── */
 
-function _pauseTimer() {
-  if (!_timerStartedAt) return;
-  _timerRemaining = Math.max(0, _timerRemaining - (Date.now() - _timerStartedAt));
-  _timerStartedAt = 0;
-  clearTimeout(_timerHandle);
-  clearInterval(_tickHandle);
-
-  const bar = document.getElementById('timer-bar');
-  const currentWidth = window.getComputedStyle(bar).width;
-  bar.style.transition = 'none';
-  bar.style.width = currentWidth;
-
-  document.getElementById('timer-label').textContent =
-    Math.ceil(_timerRemaining / 1000) + ' 秒（暫停）';
-}
-
-function _resumeTimer() {
-  if (_timerRemaining > 0) _runTimer(_timerRemaining);
-}
-
-function _runTimer(durationMs) {
-  clearTimeout(_timerHandle);
-  clearInterval(_tickHandle);
+function startTimer(durationMs) {
+  _resetTimer();
   _timerRemaining = durationMs;
   _timerStartedAt = Date.now();
 
   const bar = document.getElementById('timer-bar');
   const label = document.getElementById('timer-label');
+  const wrap = document.getElementById('timer-wrap');
+  if (wrap) wrap.style.display = 'block';
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      bar.style.transition = `width ${durationMs}ms linear`;
-      bar.style.width = '0%';
-    });
-  });
-
-  let remaining = Math.ceil(durationMs / 1000);
-  label.textContent = remaining + ' 秒';
-
-  _tickHandle = setInterval(() => {
-    remaining--;
-    label.textContent = remaining <= 0 ? '時間到！' : remaining + ' 秒';
-    if (remaining <= 0) clearInterval(_tickHandle);
-  }, 1000);
-
-  _timerHandle = setTimeout(async () => {
-    clearInterval(_tickHandle);
-    _isTimerDone = true;
-    _endedBySong = false;
-    _timerStartedAt = 0;
-
-    // 立即停止 polling，避免雙重觸發
-    _stopPolling();
-
-    const t = await getToken();
-
-    // 取得斷點位置
-    try {
-      if (t) {
-        const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-          headers: { Authorization: 'Bearer ' + t },
-        });
-        if (r.status === 200) {
-          const d = await r.json();
-          if (d && d.progress_ms != null) _pausedAtMs = d.progress_ms;
-        }
-      }
-    } catch (e) {
-      console.error('取得斷點失敗:', e);
-    }
-
-    if (t) {
-      await fetch('https://api.spotify.com/v1/me/player/pause', {
-        method: 'PUT', headers: { Authorization: 'Bearer ' + t },
-      });
-    }
-
-    _showPlayPause(true);
-    setStatus('ended-timer', '音樂結束，等待揭曉');
-
-  }, durationMs);
-}
-
-function startTimer(durationMs) {
-  document.getElementById('timer-wrap').classList.add('show');
-  const bar = document.getElementById('timer-bar');
   bar.style.transition = 'none';
   bar.style.width = '100%';
-  _runTimer(durationMs);
+
+  _tickHandle = setInterval(() => {
+    const elapsed = Date.now() - _timerStartedAt;
+    const remaining = _timerRemaining - elapsed;
+
+    if (remaining <= 0) {
+      _onTimerDone();
+      return;
+    }
+
+    const pct = (remaining / durationMs) * 100;
+    bar.style.transition = 'width 0.5s linear';
+    bar.style.width = pct + '%';
+    if (label) label.textContent = Math.ceil(remaining / 1000) + ' 秒';
+  }, 200);
+
+  _timerHandle = setTimeout(() => _onTimerDone(), durationMs);
+}
+
+function _onTimerDone() {
+  clearInterval(_tickHandle);
+  clearTimeout(_timerHandle);
+  _tickHandle = null;
+  _timerHandle = null;
+  _isTimerDone = true;
+  _pausedAtMs = _currentStartMs + (_timerRemaining);
+
+  const bar = document.getElementById('timer-bar');
+  const label = document.getElementById('timer-label');
+  if (bar) { bar.style.transition = 'width 0.3s'; bar.style.width = '0%'; }
+  if (label) label.textContent = '時間到！';
+
+  setStatus('ended-timer', '時間到！');
+  _showPlayPause(true);
+
+  // 暫停 Spotify
+  getToken().then(t => {
+    if (t) fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT', headers: { Authorization: 'Bearer ' + t },
+    }).catch(() => { });
+  });
+}
+
+function _pauseTimer() {
+  if (_tickHandle) { clearInterval(_tickHandle); _tickHandle = null; }
+  if (_timerHandle) { clearTimeout(_timerHandle); _timerHandle = null; }
+  _timerRemaining = _timerRemaining - (Date.now() - _timerStartedAt);
+  _pausedAtMs = _currentStartMs + ((_timerRemaining > 0 ? 0 : 0));
+}
+
+function _resumeTimer() {
+  if (_isTimerDone) return;
+  _timerStartedAt = Date.now();
+  const bar = document.getElementById('timer-bar');
+  const durationMs = _timerRemaining;
+
+  _tickHandle = setInterval(() => {
+    const elapsed = Date.now() - _timerStartedAt;
+    const remaining = _timerRemaining - elapsed;
+    if (remaining <= 0) { _onTimerDone(); return; }
+    const pct = (remaining / durationMs) * 100;
+    if (bar) { bar.style.transition = 'width 0.5s linear'; bar.style.width = pct + '%'; }
+    const label = document.getElementById('timer-label');
+    if (label) label.textContent = Math.ceil(remaining / 1000) + ' 秒';
+  }, 200);
+
+  _timerHandle = setTimeout(() => _onTimerDone(), _timerRemaining);
 }
 
 function _resetTimer() {
-  clearTimeout(_timerHandle);
   clearInterval(_tickHandle);
+  clearTimeout(_timerHandle);
+  _tickHandle = null;
+  _timerHandle = null;
   _isTimerDone = false;
-  _endedBySong = false;
-  _pausedAtMs = null;
   _isPaused = false;
   _timerRemaining = 0;
   _timerStartedAt = 0;
-  _showPlayPause(false);
+  _pausedAtMs = null;
+  _endedBySong = false;
 
-  document.getElementById('timer-wrap').classList.remove('show');
   const bar = document.getElementById('timer-bar');
-  bar.style.transition = 'none';
-  bar.style.width = '100%';
+  const label = document.getElementById('timer-label');
+  const wrap = document.getElementById('timer-wrap');
+  if (wrap) wrap.style.display = 'none';
+  if (label) label.textContent = '';
+  if (bar) {
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+  }
 }
 
 /* ── Polling：偵測整首歌播完 ── */
@@ -511,6 +517,9 @@ function initMultiplayerListeners() {
     // 更新搶答狀態列
     _renderBuzzerStatusBar(status, name, emoji);
 
+    // ▼ 新增：同步更新判定按鈕的 enable/disable
+    _updatePlayJudgeBtns(status);
+
     // buzzing：自動暫停音樂 + 圓環聯動
     if (status === 'buzzing' && _prevBuzzerStatus !== 'buzzing') {
       if (!_isPaused && !_isTimerDone) {
@@ -533,7 +542,6 @@ function initMultiplayerListeners() {
 
     // waiting-next：host 按跳過 → 自動播下一首
     if (status === 'waiting-next' && _prevBuzzerStatus !== 'waiting-next') {
-      // 短暫延遲讓 Firebase 寫完再播，避免競爭
       setTimeout(() => {
         if (typeof playFromPlaylist === 'function') {
           playFromPlaylist();
@@ -582,4 +590,102 @@ function _escHtml(str) {
   return String(str).replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
   );
+}
+
+/* ═══════════════════════════════════════════
+   判定按鈕（play.html 多人模式，筆電端操作）
+═══════════════════════════════════════════ */
+
+/**
+ * 根據 buzzer 狀態控制判定按鈕 enable/disable。
+ * 只有 buzzing 時才能按，其他狀態全部 disabled。
+ */
+function _updatePlayJudgeBtns(status) {
+  const canJudge = (status === 'buzzing');
+  ['pj-btn-1', 'pj-btn-2', 'pj-btn-3', 'pj-btn-wrong'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !canJudge;
+  });
+}
+
+/**
+ * 答對：給搶答者加分 + buzzer → judged
+ * @param {number} pts 加分數（1/2/3）
+ */
+async function playJudgeCorrect(pts) {
+  if (!_roomCode) return;
+
+  // 先讀目前搶答者（避免 race condition）
+  let buzzer;
+  try {
+    const snap = await buzzerRef(_roomCode).get();
+    buzzer = snap.val() || {};
+  } catch (e) {
+    console.error('playJudgeCorrect 讀取失敗:', e);
+    return;
+  }
+
+  if (buzzer.status !== 'buzzing' || !buzzer.playerId) return;
+
+  // 立即鎖住按鈕，防止重複點擊
+  _updatePlayJudgeBtns('judged');
+
+  try {
+    // 更新分數（transaction 確保原子性）
+    await playersRef(_roomCode).child(buzzer.playerId).child('score')
+      .transaction(cur => (cur || 0) + pts);
+
+    // buzzer → judged
+    await buzzerRef(_roomCode).update({ status: 'judged' });
+  } catch (e) {
+    console.error('playJudgeCorrect 失敗:', e);
+    // 失敗時恢復按鈕（重新監聽狀態自然會更新）
+  }
+}
+
+/**
+ * 答錯：將此玩家加入 answeredWrong + buzzer → locked
+ * play.html 自己負責倒數 3 秒後把 status 改回 idle
+ */
+async function playJudgeWrong() {
+  if (!_roomCode) return;
+
+  let buzzer;
+  try {
+    const snap = await buzzerRef(_roomCode).get();
+    buzzer = snap.val() || {};
+  } catch (e) {
+    console.error('playJudgeWrong 讀取失敗:', e);
+    return;
+  }
+
+  if (buzzer.status !== 'buzzing' || !buzzer.playerId) return;
+
+  // 立即鎖住按鈕，防止重複點擊
+  _updatePlayJudgeBtns('locked');
+
+  try {
+    const wrongList = Array.isArray(buzzer.answeredWrong) ? buzzer.answeredWrong : [];
+    if (!wrongList.includes(buzzer.playerId)) {
+      wrongList.push(buzzer.playerId);
+    }
+
+    // 一次更新：answeredWrong + status → locked
+    await buzzerRef(_roomCode).update({
+      status: 'locked',
+      answeredWrong: wrongList,
+    });
+
+    // play.html 負責倒數 3 秒後重置 status → idle（answeredWrong 保留）
+    setTimeout(async () => {
+      try {
+        await buzzerRef(_roomCode).update({ status: 'idle' });
+      } catch (e) {
+        console.warn('倒數重置 idle 失敗:', e);
+      }
+    }, 3000);
+
+  } catch (e) {
+    console.error('playJudgeWrong 失敗:', e);
+  }
 }
