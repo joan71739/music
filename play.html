@@ -200,32 +200,7 @@
   <!-- Toast -->
   <div id="played-toast"></div>
 
-  <!-- Firebase SDK（只在多人模式才載入，單人完全不碰） -->
-  <script>
-    (function () {
-      if (!new URLSearchParams(window.location.search).get('room')) return;
-      function loadScript(src, onload) {
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = onload;
-        document.head.appendChild(s);
-      }
-      loadScript(
-        'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', () =>
-        loadScript(
-          'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js', () =>
-          loadScript('js/firebase.js', () => {
-            if (typeof initFirebase === 'function') initFirebase();
-            // 顯示多人 panel + 啟動監聽
-            const panel = document.getElementById('play-multi-panel');
-            if (panel) panel.style.display = 'flex';
-            if (typeof initMultiplayerListeners === 'function') initMultiplayerListeners();
-          })
-        )
-      );
-    })();
-  </script>
-
+  <!-- 靜態 JS：先全部載入 -->
   <script src="js/constants.js"></script>
   <script src="js/base.js"></script>
   <script src="js/auth.js"></script>
@@ -234,6 +209,39 @@
   <script src="js/nfc.js"></script>
   <script src="js/playlist-mode.js"></script>
   <script src="js/main.js"></script>
+
+  <!-- Firebase SDK：放在所有靜態 JS 之後，確保 player.js 已執行完畢 -->
+  <!-- 只在多人模式（有 room 參數）才載入，單人模式完全不碰 Firebase -->
+  <script>
+    (function () {
+      if (!new URLSearchParams(window.location.search).get('room')) return;
+
+      function loadScript(src, onload) {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = onload;
+        document.head.appendChild(s);
+      }
+
+      // 用 window.load 確保所有靜態 script 都執行完畢再啟動 Firebase
+      window.addEventListener('load', function () {
+        loadScript(
+          'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', () =>
+          loadScript(
+            'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js', () =>
+            loadScript('js/firebase.js', () => {
+              if (typeof initFirebase === 'function') initFirebase();
+              // 顯示多人 panel
+              const panel = document.getElementById('play-multi-panel');
+              if (panel) panel.style.display = 'flex';
+              // 啟動 buzzer + 分數板監聽
+              if (typeof initMultiplayerListeners === 'function') initMultiplayerListeners();
+            })
+          )
+        );
+      });
+    })();
+  </script>
 
 </body>
 

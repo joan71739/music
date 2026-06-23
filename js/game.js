@@ -137,7 +137,7 @@ function _renderState() {
             } else {
                 _showState('state-judged-other');
                 document.getElementById('judged-other-title').textContent =
-                    `${_buzzerPlayerEmoji} ${_buzzerPlayerName} 答對！`;
+                    `🎉 ${_buzzerPlayerEmoji} ${_buzzerPlayerName} 答對了！`;
             }
             btn.disabled = true;
             btn.classList.add('btn-locked');
@@ -150,9 +150,8 @@ function _renderState() {
                 `${_buzzerPlayerEmoji} ${_buzzerPlayerName} 答錯了`;
             btn.disabled = true;
             btn.classList.add('btn-locked');
-            document.getElementById('buzzer-text').textContent = '倒數中...';
-            // 倒數 UI（play.html 負責寫 Firebase，這裡只做顯示）
-            _startCountdown(3);
+            document.getElementById('buzzer-text').textContent = '搶答';
+            _startCountdown();
             break;
 
         case 'waiting-next':
@@ -164,26 +163,24 @@ function _renderState() {
 
         default:
             _showState('state-idle');
+            btn.classList.add('btn-ready');
+            document.getElementById('buzzer-text').textContent = '搶答';
     }
 }
 
 /* ──────────────────────────────────────
-   倒數計時（UI 層，不寫 Firebase）
+   倒數計時（locked 狀態）
 ────────────────────────────────────── */
 
-function _startCountdown(sec) {
+function _startCountdown() {
+    let count = 3;
     const el = document.getElementById('locked-countdown');
-    el.textContent = sec;
-    let remaining = sec;
+    if (el) el.textContent = count;
 
     _countdownHandle = setInterval(() => {
-        remaining -= 1;
-        if (remaining <= 0) {
-            _clearCountdown();
-            el.textContent = '';
-        } else {
-            el.textContent = remaining;
-        }
+        count--;
+        if (el) el.textContent = count > 0 ? count : '';
+        if (count <= 0) _clearCountdown();
     }, 1000);
 }
 
@@ -260,12 +257,14 @@ function _renderLeaderboard(players) {
         return;
     }
 
+    const medals = ['🥇', '🥈', '🥉'];
+
     list.innerHTML = items.map(([uid, p], i) => `
     <div class="game-lb-row ${uid === _myUid ? 'lb-row-me' : ''}">
-      <span class="lb-rank">${i + 1}</span>
-      <span class="lb-avatar">${p.emoji || '🎵'}</span>
+      <span class="lb-rank">${medals[i] || i + 1}</span>
+      <span class="lb-avatar">${p.emoji || p.avatar || '🎵'}</span>
       <span class="lb-name">${_escape(p.name || '玩家')}</span>
-      <span class="lb-score">${p.score || 0}</span>
+      <span class="lb-score">${p.score || 0}分</span>
     </div>
   `).join('');
 }
