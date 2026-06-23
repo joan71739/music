@@ -9,12 +9,3 @@ function homeLogout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
-
-async function init() {
-  const t = await getToken();
-  if (!t) {
-    window.location.href = 'login.html';
-  }
-}
-
-init();
