@@ -8,7 +8,7 @@
 async function init() {
   const s = loadSettings();
 
-  const mode = new URLSearchParams(window.location.search).get('mode');
+  const mode = new URLSearchParams(window.location.search).get('mode') || 'name';
   if (mode === 'intro') {
     s.startSec    = DEFAULTS.INTRO_START_SEC;
     s.limitMode   = true;
