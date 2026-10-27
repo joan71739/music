@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify 最小測試頁</title>
+  <style>
+    body { margin: 0; padding: 16px; background: #0a0a0a; color: #eee; font-family: -apple-system, "Noto Sans TC", sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p.note { font-size: 12px; color: #888; margin: 0 0 14px; line-height: 1.5; }
+    label { font-size: 12px; color: #aaa; }
+    input { width: 100%; box-sizing: border-box; padding: 10px; margin: 4px 0 14px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 14px; }
+    button { display: block; width: 100%; padding: 14px; margin-bottom: 10px; background: #1db954; color: #000; border: 0; border-radius: 10px; font-size: 15px; font-weight: 700; }
+    button.sub { background: #222; color: #1db954; border: 1px solid #1db954; }
+    #log { margin-top: 14px; padding: 12px; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all; min-height: 120px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<h1>Spotify 最小測試頁</h1>
+<p class="note">
+  用途：排除遊戲程式的影響。請先在手機 Spotify 背景播放一首歌，再回這頁按下面的按鈕，
+  看 Spotify 會不會被關掉。需與遊戲網頁放在同一個網址底下（共用登入 token）。
+</p>
+
+<label>歌曲 URI</label>
+<input id="uri" value="spotify:track:4UOZ3duqmEfMKXqvkZeboh">
+
+<button onclick="testPlay('A')">A. 最單純：只送 uris（不帶位置、不帶 device_id）</button>
+<button onclick="testPlay('B')">B. 帶開始位置 30 秒</button>
+<button onclick="testPlay('C')">C. 帶 device_id（舊版寫法）</button>
+<button class="sub" onclick="showState()">查看目前播放狀態</button>
+
+<div id="log">尚未測試</div>
+
+<script src="js/auth.js"></script>
+<script>
+  const logEl = document.getElementById('log');
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+    logEl.textContent += '\n[' + t + '] ' + msg;
+  }
+  function resetLog(title) {
+    logEl.textContent = '=== ' + title + ' ===';
+  }
+
+  async function authHeader() {
+    const t = await getToken();
+    if (!t) { log('沒有有效 token，請先到遊戲網頁登入一次'); return null; }
+    return { Authorization: 'Bearer ' + t };
+  }
+
+  async function showState() {
+    resetLog('目前播放狀態');
+    const h = await authHeader(); if (!h) return;
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player', { headers: h });
+      log('GET /me/player → ' + r.status);
+      if (r.status === 200) {
+        const d = await r.json();
+        log('is_playing: ' + d.is_playing);
+        log('歌曲: ' + (d.item ? d.item.name : '無'));
+        log('進度: ' + Math.round((d.progress_ms || 0) / 1000) + ' 秒');
+        if (d.device) {
+          log('裝置: ' + d.device.name + '（' + d.device.type + '）');
+          log('裝置活躍: ' + d.device.is_active);
+          log('音量: ' + d.device.volume_percent + '%');
+          log('受限制: ' + d.device.is_restricted);
+        }
+      } else if (r.status === 204) {
+        log('目前沒有播放內容（Spotify 可能已被關掉或沒有活躍裝置）');
+      }
+    } catch (e) { log('錯誤: ' + e.message); }
+  }
+
+  async function testPlay(kind) {
+    resetLog('測試 ' + kind);
+    const uri = document.getElementById('uri').value.trim();
+    const h = await authHeader(); if (!h) return;
+
+    // 先記錄送出前的狀態
+    try {
+      const s = await fetch('https://api.spotify.com/v1/me/player', { headers: h });
+      log('送出前狀態碼: ' + s.status + (s.status === 204 ? '（沒有活躍播放）' : ''));
+    } catch (e) { log('送出前查詢失敗: ' + e.message); }
+
+    let qs = '';
+    const body = { uris: [uri] };
+
+    if (kind === 'B') body.position_ms = 30000;
+    if (kind === 'C') {
+      try {
+        const dr = await fetch('https://api.spotify.com/v1/me/player/devices', { headers: h });
+        const dd = await dr.json();
+        const dev = (dd.devices || []).find(d => d.is_active) || (dd.devices || [])[0];
+        if (!dev) { log('找不到裝置'); return; }
+        qs = '?device_id=' + dev.id;
+        log('使用裝置: ' + dev.name);
+      } catch (e) { log('查裝置失敗: ' + e.message); return; }
+    }
+
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player/play' + qs, {
+        method: 'PUT',
+        headers: { ...h, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      log('PUT /me/player/play → ' + r.status);
+      if (r.status !== 204 && r.status !== 200) {
+        log('回應: ' + (await r.text()).slice(0, 200));
+      }
+    } catch (e) { log('送出失敗: ' + e.message); return; }
+
+    // 3 秒、8 秒後各查一次，看 Spotify 還在不在
+    for (const sec of [3, 8]) {
+      await new Promise(res => setTimeout(res, sec === 3 ? 3000 : 5000));
+      try {
+        const s = await fetch('https://api.spotify.com/v1/me/player', { headers: h });
+        if (s.status === 200) {
+          const d = await s.json();
+          log(sec + ' 秒後：is_playing=' + d.is_playing + '，進度 ' + Math.round((d.progress_ms || 0) / 1000) + ' 秒');
+        } else {
+          log(sec + ' 秒後：狀態碼 ' + s.status + (s.status === 204 ? '（Spotify 已不在播放，可能被關掉）' : ''));
+        }
+      } catch (e) { log(sec + ' 秒後查詢失敗: ' + e.message); }
+    }
+    log('測試結束，請看手機：Spotify 還在背景嗎？有聲音嗎？');
+  }
+</script>
+</body>
+</html>
