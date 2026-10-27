@@ -34,6 +34,7 @@ let _isTimerDone = false;
 let _isPaused = false;
 let _timerRemaining = 0;   // ms
 let _timerStartedAt = 0;
+let _timerActive = false;   // true = 限時計時器正在跑（非限時模式沒有計時器，暫停/繼續不可動它）
 
 let _isRevealed = false;
 
@@ -159,6 +160,7 @@ async function _resumePlay() {
 
 function startTimer(durationMs) {
   _resetTimer();
+  _timerActive = true;
   _timerRemaining = durationMs;
   _timerStartedAt = Date.now();
 
@@ -213,6 +215,7 @@ function _onTimerDone() {
 }
 
 function _pauseTimer() {
+  if (!_timerActive) return;   // 非限時模式：沒有計時器，什麼都不做
   if (_tickHandle) { clearInterval(_tickHandle); _tickHandle = null; }
   if (_timerHandle) { clearTimeout(_timerHandle); _timerHandle = null; }
   _timerRemaining = _timerRemaining - (Date.now() - _timerStartedAt);
@@ -220,6 +223,7 @@ function _pauseTimer() {
 }
 
 function _resumeTimer() {
+  if (!_timerActive) return;   // 非限時模式：沒有計時器，什麼都不做
   if (_isTimerDone) return;
   _timerStartedAt = Date.now();
   const bar = document.getElementById('timer-bar');
@@ -248,6 +252,7 @@ function _resetTimer() {
   _isPaused = false;
   _timerRemaining = 0;
   _timerStartedAt = 0;
+  _timerActive = false;
   _pausedAtMs = null;
   _endedBySong = false;
 
