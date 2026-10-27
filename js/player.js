@@ -42,6 +42,8 @@ let _currentStartMs = 0;      // 播放開始位置（設定值）
 let _pausedAtMs = null;       // 計時器斷點（毫秒）
 let _endedBySong = false;     // true = 整首歌自然播完
 let _pollHandle = null;       // polling interval handle
+let _usingContext = false;    // true = 這首是用「歌單 context」播的（播完 Spotify 會自動接下一首，需自己攔截）
+let _endGuard = null;         // 歌曲快結束時的精準暫停計時器
 
 /* ── View 切換 ── */
 
@@ -123,6 +125,7 @@ async function ringTogglePlayPause() {
 }
 
 async function _pausePlay() {
+  if (_endGuard) { clearTimeout(_endGuard); _endGuard = null; }
   const t = await getToken();
   if (!t) return;
   try {
@@ -236,6 +239,7 @@ function _resumeTimer() {
 }
 
 function _resetTimer() {
+  if (_endGuard) { clearTimeout(_endGuard); _endGuard = null; }
   clearInterval(_tickHandle);
   clearTimeout(_timerHandle);
   _tickHandle = null;
@@ -270,6 +274,7 @@ function _stopPolling() {
     clearInterval(_pollHandle);
     _pollHandle = null;
   }
+  if (_endGuard) { clearTimeout(_endGuard); _endGuard = null; }
 }
 
 async function _checkSongEnded() {
@@ -288,11 +293,47 @@ async function _checkSongEnded() {
     if (r.status === 200) {
       const d = await r.json();
       if (!d) return;
+
+      // 歌單 context 模式：歌播完後 Spotify 會自動接歌單下一首，必須自己攔截，否則會漏出下一首
+      if (_usingContext && d.item) {
+        const expectId = _currentUri ? _currentUri.split(':')[2] : null;
+        if (expectId && d.item.id !== expectId) {
+          // 已經被接到別首 → 立刻暫停並視為播完
+          await _pauseSpotifyQuiet(t);
+          _onSongEnded();
+          return;
+        }
+        if (d.is_playing && d.progress_ms != null) {
+          const remain = d.item.duration_ms - d.progress_ms;
+          if (remain <= 4000 && !_endGuard) {
+            // 快結束了：在歌曲結束前一點點精準暫停
+            _endGuard = setTimeout(async () => {
+              _endGuard = null;
+              if (_isPaused || _isTimerDone) return;
+              await _pauseSpotifyQuiet();
+              _onSongEnded();
+            }, Math.max(remain - 300, 0));
+          }
+        }
+      }
+
       const nearEnd = d.item && d.progress_ms >= (d.item.duration_ms - 3000);
       if (!d.is_playing && nearEnd) _onSongEnded();
     }
   } catch (e) {
     console.error('polling error:', e);
+  }
+}
+
+async function _pauseSpotifyQuiet(token) {
+  try {
+    const tk = token || await getToken();
+    if (!tk) return;
+    await fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT', headers: { Authorization: 'Bearer ' + tk },
+    });
+  } catch (e) {
+    console.warn('暫停失敗:', e);
   }
 }
 
@@ -357,6 +398,41 @@ async function _fetchTrackInfo(uri) {
   }
 }
 
+/* ── 跳到指定秒數（換歌後使用，會驗證真的跳到「新歌」的位置，沒跳到就重試） ──
+ * 為了縮短開頭「從 0 秒播出來」的洩漏時間，第一次 seek 等得很短；
+ * 但太早 seek 可能打到舊歌，所以 seek 後用 GET /me/player 確認：
+ * 播放中的歌是目標歌曲，且進度已接近目標位置，否則重試。
+ */
+const SEEK_DELAY_MS = 300;    // 切歌後第一次 seek 前等多久（越小開頭洩漏越短，但越容易需要重試）
+const SEEK_RETRY_MS = 400;    // 重試間隔
+const SEEK_MAX_TRIES = 4;
+
+async function _seekTo(t, uri, ms) {
+  const H = { Authorization: 'Bearer ' + t };
+  const trackId = uri.split(':')[2];
+
+  for (let i = 0; i < SEEK_MAX_TRIES; i++) {
+    await new Promise(r => setTimeout(r, i === 0 ? SEEK_DELAY_MS : SEEK_RETRY_MS));
+    try {
+      const sk = await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=' + Math.round(ms), {
+        method: 'PUT', headers: H,
+      });
+      if (sk.status !== 204 && sk.status !== 200) continue;
+
+      const sr = await fetch('https://api.spotify.com/v1/me/player', { headers: H });
+      if (sr.status !== 200) continue;
+      const st = await sr.json();
+      const sameTrack = st && st.item && st.item.id === trackId;
+      const nearTarget = st && typeof st.progress_ms === 'number' && st.progress_ms >= ms - 1500;
+      if (sameTrack && nearTarget) return true;
+    } catch (e) {
+      console.warn('seek 重試:', e);
+    }
+  }
+  console.warn('seek 多次嘗試後仍未確認到位');
+  return false;
+}
+
 /* ── 核心播放函式（跨模式共用） ── */
 
 /**
@@ -406,17 +482,34 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
 
   const dev = devices.find(d => d.is_active) || devices[0];
 
-  // 實測（test-play.html）：此手機的 Spotify 收到「指定歌曲播放」(PUT /me/player/play) 會被系統關掉，
-  // 所以裝置已活躍時改用「加入佇列 → 下一首 → seek」；沒有活躍裝置時才退回 PUT /play 並帶 device_id 喚醒。
-  const SEEK_DELAY_MS = 800;   // 換歌後等多久再 seek（太短 Spotify 可能還沒載入新歌）
+  // 實測（test-play.html）：此手機的 Spotify 收到「uris + position_ms」的播放指令會被中斷，
+  // 但「歌單 context + offset + position_ms」可以正常一次到位。
+  // 播放順序：① 歌單 context → ② 佇列 + 下一首 + seek → ③ 舊做法（帶 device_id）。
   const H = { Authorization: 'Bearer ' + t };
   let ok = false;
   let lastStatus = 0;
+  _usingContext = false;
 
   setStatus('idle', '切換歌曲...');
 
   try {
-    if (dev.is_active) {
+    // ① 優先：用「目前選的歌單」當 context，直接指定歌曲 + 起始秒數（實測 test-play.html F 可用，不漏開頭）
+    const ctxId = (typeof _selectedId !== 'undefined') ? _selectedId : null;
+    if (ctxId) {
+      const cbody = { context_uri: 'spotify:playlist:' + ctxId, offset: { uri: uri } };
+      if (startMs && startMs > 0) cbody.position_ms = Math.round(startMs);
+      const cr = await fetch('https://api.spotify.com/v1/me/player/play' + (dev.is_active ? '' : '?device_id=' + dev.id), {
+        method: 'PUT',
+        headers: { ...H, 'Content-Type': 'application/json' },
+        body: JSON.stringify(cbody),
+      });
+      lastStatus = cr.status;
+      if (cr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
+      if (cr.status === 204 || cr.status === 200) { ok = true; _usingContext = true; }
+    }
+
+    // ② 備案：沒有選歌單、或歌不在歌單裡 → 佇列 + 下一首 + seek
+    if (!ok && dev.is_active) {
       const qr = await fetch('https://api.spotify.com/v1/me/player/queue?uri=' + encodeURIComponent(uri), {
         method: 'POST', headers: H,
       });
@@ -432,19 +525,13 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
         if (nr.status === 204 || nr.status === 200) {
           ok = true;
           if (startMs && startMs > 0) {
-            await new Promise(r => setTimeout(r, SEEK_DELAY_MS));
-            const sk = await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=' + Math.round(startMs), {
-              method: 'PUT', headers: H,
-            });
-            if (sk.status !== 204 && sk.status !== 200) {
-              console.warn('seek 失敗:', sk.status);
-            }
+            await _seekTo(t, uri, startMs);
           }
         }
       }
     }
 
-    // 退回舊做法：沒有活躍裝置，或佇列/下一首失敗
+    // ③ 最後備案：沒有活躍裝置，或前兩種都失敗（舊做法，帶 device_id 喚醒）
     if (!ok) {
       const body = { uris: [uri] };
       if (startMs && startMs > 0) body.position_ms = startMs;
