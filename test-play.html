@@ -29,6 +29,11 @@
 <button onclick="testPlay('A')">A. 最單純：只送 uris（不帶位置、不帶 device_id）</button>
 <button onclick="testPlay('B')">B. 帶開始位置 30 秒</button>
 <button onclick="testPlay('C')">C. 帶 device_id（舊版寫法）</button>
+<label>歌單 URI（F 測試用，例如 spotify:playlist:xxxx，歌曲需在此歌單內）</label>
+<input id="ctx" placeholder="spotify:playlist:...">
+
+<button onclick="testPlay('E')">E. 先暫停 → 加入佇列 → 下一首 → 跳 30 秒 → 繼續播</button>
+<button onclick="testPlay('F')">F. 用歌單當 context + offset + 指定 30 秒（一次到位）</button>
 <button onclick="testPlay('D')">D. 替代做法：加入佇列 → 下一首 → 跳到 30 秒</button>
 <button class="sub" onclick="showState()">查看目前播放狀態</button>
 
@@ -101,7 +106,41 @@
       } catch (e) { log('查裝置失敗: ' + e.message); return; }
     }
 
-    if (kind === 'D') {
+    if (kind === 'E') {
+      // 先暫停，避免舊歌/新歌開頭漏聲；切歌後看是否維持暫停，再 seek 並繼續
+      try {
+        const pz = await fetch('https://api.spotify.com/v1/me/player/pause', { method: 'PUT', headers: h });
+        log('PUT /me/player/pause → ' + pz.status);
+        const qr = await fetch('https://api.spotify.com/v1/me/player/queue?uri=' + encodeURIComponent(uri), { method: 'POST', headers: h });
+        log('POST /me/player/queue → ' + qr.status);
+        if (qr.status !== 204 && qr.status !== 200) { log('回應: ' + (await qr.text()).slice(0, 200)); return; }
+        const nr = await fetch('https://api.spotify.com/v1/me/player/next', { method: 'POST', headers: h });
+        log('POST /me/player/next → ' + nr.status);
+        await new Promise(res => setTimeout(res, 300));
+        const s1 = await fetch('https://api.spotify.com/v1/me/player', { headers: h });
+        if (s1.status === 200) {
+          const d1 = await s1.json();
+          log('切歌後 0.3 秒：is_playing=' + d1.is_playing + '，進度 ' + Math.round((d1.progress_ms || 0) / 1000) + ' 秒  ← is_playing=false 代表切歌後維持暫停（不會漏聲）');
+        }
+        const sk = await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=30000', { method: 'PUT', headers: h });
+        log('PUT /me/player/seek → ' + sk.status);
+        const rs = await fetch('https://api.spotify.com/v1/me/player/play', { method: 'PUT', headers: h });
+        log('PUT /me/player/play（繼續）→ ' + rs.status);
+      } catch (e) { log('送出失敗: ' + e.message); return; }
+    } else if (kind === 'F') {
+      // 用歌單 context + offset 指定歌曲，再帶 position_ms
+      const ctx = document.getElementById('ctx').value.trim();
+      if (!ctx) { log('請先填歌單 URI'); return; }
+      try {
+        const r = await fetch('https://api.spotify.com/v1/me/player/play', {
+          method: 'PUT',
+          headers: { ...h, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context_uri: ctx, offset: { uri: uri }, position_ms: 30000 }),
+        });
+        log('PUT /me/player/play（context）→ ' + r.status);
+        if (r.status !== 204 && r.status !== 200) { log('回應: ' + (await r.text()).slice(0, 200)); }
+      } catch (e) { log('送出失敗: ' + e.message); return; }
+    } else if (kind === 'D') {
       // 不用「指定歌曲播放」，改成：加入佇列 → 下一首 → 跳到 30 秒
       try {
         const qr = await fetch('https://api.spotify.com/v1/me/player/queue?uri=' + encodeURIComponent(uri), {
