@@ -408,10 +408,14 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
   const body = { uris: [uri] };
   if (startMs && startMs > 0) body.position_ms = startMs;
 
+  // [改1] 裝置已活躍 → 不帶 device_id（避免觸發轉移播放把背景 Spotify 中斷）；
+  //       沒有活躍裝置才帶 device_id 來喚醒
+  const qs = dev.is_active ? '' : '?device_id=' + dev.id;
+
   setStatus('idle', '切換歌曲...');
 
   try {
-    const pr = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + dev.id, {
+    const pr = await fetch('https://api.spotify.com/v1/me/player/play' + qs, {
       method: 'PUT',
       headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -420,6 +424,26 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
     if (pr.status === 403) { setStatus('idle', '需要 Spotify Premium'); return; }
 
     if (pr.status === 204 || pr.status === 200) {
+
+      // [改2] 確認真的有在播，沒有就補送一次 play（失敗只記 log，不影響流程）
+      try {
+        await new Promise(r => setTimeout(r, 1200));
+        const sr = await fetch('https://api.spotify.com/v1/me/player', {
+          headers: { Authorization: 'Bearer ' + t },
+        });
+        if (sr.status === 200) {
+          const st = await sr.json();
+          if (st && st.is_playing === false) {
+            await fetch('https://api.spotify.com/v1/me/player/play' + qs, {
+              method: 'PUT',
+              headers: { Authorization: 'Bearer ' + t },
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('播放狀態確認失敗:', e);
+      }
+
       setStatus('playing', '播放中');
       _showPlayPause(true);
 
