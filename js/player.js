@@ -51,6 +51,8 @@ let _pollSeq = 0;             // 每次 playTrack 遞增；用來丟掉「換歌
 let _noPlaybackCount = 0;     // currently-playing 連續回 204（沒有播放內容）的次數
 let _lastEndReason = '';      // 最近一次被判定「播完」的原因（除錯用，看「測試連線」）
 
+let _expectedTrack = null;    // 這首「預期要播」的歌曲資訊（名稱、ISRC），用來比對 Spotify 實際播的是不是同一首
+
 /* ── View 切換 ── */
 
 function showView(name) {
@@ -318,12 +320,18 @@ async function _checkSongEnded() {
       // 歌單 context 模式：歌播完後 Spotify 會自動接歌單下一首，必須自己攔截，否則會漏出下一首
       if (_usingContext && d.item) {
         const expectId = _currentUri ? _currentUri.split(':')[2] : null;
-        // Spotify 可能因市場替換成另一個歌曲 ID，原本要求的 ID 會放在 linked_from，也算同一首
-        const sameTrack = !expectId || d.item.id === expectId || d.item.linked_from?.id === expectId;
+        // Spotify 可能把這首換成「同一首歌的另一個版本」（歌曲 ID 不同但歌名／ISRC 相同），這種不算被接到別首
+        let sameTrack = !expectId || d.item.id === expectId || d.item.linked_from?.id === expectId;
+        let exp = null;
         if (!sameTrack) {
-          // 已經被接到別首 → 立刻暫停並視為播完
+          exp = await _getExpectedTrack(t, expectId);
+          if (seq !== _pollSeq) return;   // 等待期間已經換歌
+          sameTrack = _sameSong(d.item, exp);
+        }
+        if (!sameTrack) {
+          // 確定被接到別首 → 立刻暫停並視為播完
           await _pauseSpotifyQuiet(t);
-          _onSongEnded(`歌曲不符：預期 ${expectId}，實際 ${d.item.id}（${d.item.name}）`);
+          _onSongEnded(`歌曲不符：預期 ${expectId}（${exp?.name || '未取得'}），實際 ${d.item.id}（${d.item.name}）`);
           return;
         }
         if (d.is_playing && d.progress_ms != null) {
@@ -346,6 +354,41 @@ async function _checkSongEnded() {
   } catch (e) {
     console.error('polling error:', e);
   }
+}
+
+/* ── 比對「Spotify 實際播的歌」是不是我們要的那首 ──
+ * Spotify 有時會把歌單裡的歌換成「同一首歌的另一個版本」（歌曲 ID 不同，但歌名／ISRC 相同），
+ * 這種情況不能當成「被接到別首」，否則會在開頭幾秒就誤判播完。
+ */
+
+function _trackBrief(d, id) {
+  return {
+    id: id,
+    name: (d.name || '').trim().toLowerCase(),
+    isrc: d.external_ids?.isrc || '',
+  };
+}
+
+async function _getExpectedTrack(token, trackId) {
+  if (_expectedTrack && _expectedTrack.id === trackId) return _expectedTrack;
+  try {
+    const r = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!r.ok) return null;
+    _expectedTrack = _trackBrief(await r.json(), trackId);
+    return _expectedTrack;
+  } catch (e) {
+    console.warn('取得預期歌曲資訊失敗:', e);
+    return null;
+  }
+}
+
+function _sameSong(item, exp) {
+  if (!item || !exp) return false;
+  if (exp.isrc && item.external_ids?.isrc && exp.isrc === item.external_ids.isrc) return true;
+  const name = (item.name || '').trim().toLowerCase();
+  return !!name && name === exp.name;
 }
 
 async function _pauseSpotifyQuiet(token) {
@@ -421,6 +464,7 @@ async function _fetchTrackInfo(uri) {
       const d = await r.json();
       currentTrackName = d.name || '';
       currentArtistName = d.artists?.map(a => a.name).join(', ') || '';
+      if (_currentUri === uri) _expectedTrack = _trackBrief(d, trackId);
     }
   } catch (e) {
     console.error('_fetchTrackInfo error:', e);
@@ -499,6 +543,7 @@ async function _seekTo(t, uri, ms) {
 async function playTrack(uri, startMs, durationMs, isResume = false) {
   _pollSeq++;               // 之前還在途中的檢查結果一律作廢
   _noPlaybackCount = 0;
+  _expectedTrack = null;
   _stopPolling();
   _resetTimer();   // 內部已包含 _isPaused = false
   _resetAnswer();
