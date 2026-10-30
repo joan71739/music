@@ -109,6 +109,22 @@
   color: #1a9645;
 }
 
+/* 備註（第三行）：最多 2 行；沒有備註時內容為空 → 整行隱藏 */
+#answer-note {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(26, 150, 69, 0.8);
+  padding: 0 1.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#answer-note:empty {
+  display: none;
+}
+
 #answer-divider {
   display: none;
 }
