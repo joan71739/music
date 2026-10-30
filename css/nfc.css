@@ -42,7 +42,7 @@
   transition: max-height 0.3s ease, opacity 0.25s;
   margin-bottom: 0.8rem;
 }
-#settings-panel.open { max-height: 300px; opacity: 1; }
+#settings-panel.open { max-height: 520px; opacity: 1; }
 
 .setting-row {
   display: flex;
