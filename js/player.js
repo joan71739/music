@@ -47,6 +47,10 @@ let _pollHandle = null;       // polling interval handle
 let _usingContext = false;    // true = 這首是用「歌單 context」播的（播完 Spotify 會自動接下一首，需自己攔截）
 let _endGuard = null;         // 歌曲快結束時的精準暫停計時器
 
+let _pollSeq = 0;             // 每次 playTrack 遞增；用來丟掉「換歌前送出」的過期檢查結果
+let _noPlaybackCount = 0;     // currently-playing 連續回 204（沒有播放內容）的次數
+let _lastEndReason = '';      // 最近一次被判定「播完」的原因（除錯用，看「測試連線」）
+
 /* ── View 切換 ── */
 
 function showView(name) {
@@ -286,6 +290,8 @@ function _stopPolling() {
 async function _checkSongEnded() {
   if (_isTimerDone || _isPaused) return;
 
+  const seq = _pollSeq;   // 記住這次檢查屬於哪一首歌
+
   const t = await getToken();
   if (!t) return;
 
@@ -294,19 +300,30 @@ async function _checkSongEnded() {
       headers: { Authorization: 'Bearer ' + t },
     });
 
-    if (r.status === 204) { _onSongEnded(); return; }
+    if (seq !== _pollSeq) return;   // 這段期間已經換歌，丟掉舊結果
+
+    if (r.status === 204) {
+      // 連續 2 次都沒有播放內容才算播完，避免 Spotify 短暫回報造成誤判
+      _noPlaybackCount++;
+      if (_noPlaybackCount >= 2) _onSongEnded('Spotify 連續 2 次回報沒有播放內容（204）');
+      return;
+    }
+    _noPlaybackCount = 0;
 
     if (r.status === 200) {
       const d = await r.json();
+      if (seq !== _pollSeq) return;
       if (!d) return;
 
       // 歌單 context 模式：歌播完後 Spotify 會自動接歌單下一首，必須自己攔截，否則會漏出下一首
       if (_usingContext && d.item) {
         const expectId = _currentUri ? _currentUri.split(':')[2] : null;
-        if (expectId && d.item.id !== expectId) {
+        // Spotify 可能因市場替換成另一個歌曲 ID，原本要求的 ID 會放在 linked_from，也算同一首
+        const sameTrack = !expectId || d.item.id === expectId || d.item.linked_from?.id === expectId;
+        if (!sameTrack) {
           // 已經被接到別首 → 立刻暫停並視為播完
           await _pauseSpotifyQuiet(t);
-          _onSongEnded();
+          _onSongEnded(`歌曲不符：預期 ${expectId}，實際 ${d.item.id}（${d.item.name}）`);
           return;
         }
         if (d.is_playing && d.progress_ms != null) {
@@ -315,16 +332,16 @@ async function _checkSongEnded() {
             // 快結束了：在歌曲結束前一點點精準暫停
             _endGuard = setTimeout(async () => {
               _endGuard = null;
-              if (_isPaused || _isTimerDone) return;
+              if (_isPaused || _isTimerDone || seq !== _pollSeq) return;
               await _pauseSpotifyQuiet();
-              _onSongEnded();
+              _onSongEnded('歌曲快結束（預約暫停）');
             }, Math.max(remain - 300, 0));
           }
         }
       }
 
       const nearEnd = d.item && d.progress_ms >= (d.item.duration_ms - 3000);
-      if (!d.is_playing && nearEnd) _onSongEnded();
+      if (!d.is_playing && nearEnd) _onSongEnded(`已暫停且接近結尾（${Math.round(d.progress_ms / 1000)}/${Math.round(d.item.duration_ms / 1000)} 秒）`);
     }
   } catch (e) {
     console.error('polling error:', e);
@@ -343,7 +360,9 @@ async function _pauseSpotifyQuiet(token) {
   }
 }
 
-function _onSongEnded() {
+function _onSongEnded(reason) {
+  _lastEndReason = reason || '（未標示）';
+  console.warn('判定播完：', _lastEndReason);
   _stopPolling();
   if (_isTimerDone) return;
 
@@ -478,6 +497,8 @@ async function _seekTo(t, uri, ms) {
  * @param {boolean} isResume       true = 從斷點接續播放
  */
 async function playTrack(uri, startMs, durationMs, isResume = false) {
+  _pollSeq++;               // 之前還在途中的檢查結果一律作廢
+  _noPlaybackCount = 0;
   _stopPolling();
   _resetTimer();   // 內部已包含 _isPaused = false
   _resetAnswer();
@@ -641,7 +662,8 @@ async function doDebug() {
   box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n加入今日歌單: ${s.addToPlayed}\n允許重複: ${s.allowRepeat}\n\n`;
   box.textContent += `當前 URI: ${_currentUri || '無'}\n`;
   box.textContent += `歌曲名稱: ${currentTrackName || '未取得'}\n`;
-  box.textContent += `斷點位置: ${_pausedAtMs !== null ? Math.round(_pausedAtMs / 1000) + ' 秒' : '無'}\n\n`;
+  box.textContent += `斷點位置: ${_pausedAtMs !== null ? Math.round(_pausedAtMs / 1000) + ' 秒' : '無'}\n`;
+  box.textContent += `最近一次判定播完的原因: ${_lastEndReason || '無'}\n\n`;
 
   if (!runtimeOk) { box.textContent += '沒有有效 Token，請重新登入'; return; }
 
