@@ -47,9 +47,8 @@ async function addToPlayedPlaylist(trackUri) {
       body: JSON.stringify({ uris: [trackUri] })
     });
     const addBody = await addR.json();
-    if (addR.status === 201) {
-      showToast('played-toast', '已加入今日歌單', true);
-    } else {
+    // 成功（201）不再跳「已加入今日歌單」提示；失敗才提示
+    if (addR.status !== 201) {
       showToast('played-toast', '同步失敗 ' + addR.status + ': ' + (addBody.error?.message || ''), false);
     }
   } catch(e) {
