@@ -1,7 +1,7 @@
 /**
  * playlist-mode.js  v5
  * 主題選歌模式：膠囊 + 格狀選單（橫式格）
- * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）
+ * 依賴：auth.js（getToken）、player.js（playTrack、setStatus）、nfc.js（loadSettings）、history.js（fetchPlayedUris）
  */
 
 let _playlists = [];
@@ -201,8 +201,26 @@ async function playFromPlaylist() {
       return;
     }
 
-    const track = tracks[Math.floor(Math.random() * tracks.length)];
     const s = loadSettings();
+
+    // 重複播放關閉：排除今日歌單已有的歌（與「加入今日歌單」開關無關，一律要判斷）
+    let candidates = tracks;
+    if (!s.allowRepeat) {
+      setStatus('idle', '檢查今日歌單...');
+      const played = await fetchPlayedUris(t);
+      if (played) {
+        candidates = tracks.filter(tr => !played.has(tr.uri));
+      } else {
+        console.warn('今日歌單讀取失敗，略過重複檢查');
+      }
+      if (candidates.length === 0) {
+        setStatus('idle', '這個主題的歌都播過了');
+        if (ring) ring.classList.add('clickable');
+        return;
+      }
+    }
+
+    const track = candidates[Math.floor(Math.random() * candidates.length)];
     const startMs    = s.startSec * 1000;
     const durationMs = s.limitMode ? s.durationSec * 1000 : null;
 
