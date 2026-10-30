@@ -213,17 +213,21 @@ const SP_COOLDOWN_KEY = 'sp_cooldown_until';
 const SP_LAST429_KEY = 'sp_last429';
 const SP_DEFAULT_WAIT_SEC = 30;
 const SP_MAX_WAIT_SEC = 3600;
+const SP_STREAK_KEY = 'sp_429_streak';
+const SP_BACKOFF_MAX_SEC = 900;       // 讀不到 Retry-After 時，連續 429 的等待上限（15 分鐘）
 
 let _spCooldownUntil = 0;     // 冷卻到什麼時候（毫秒時間戳）
 let _spLast429 = null;        // 最近一次 429 的資訊
 let _spReqTimes = [];         // 最近送出的請求時間（用來算 30 秒內幾次）
 let _spReqTotal = 0;          // 本頁累計送出的請求數
 let _spPeak30 = 0;            // 本頁出現過的「30 秒內最高請求數」
+let _spStreak = 0;            // 連續 429 次數（讀不到 Retry-After 時用來拉長等待，避免每 30 秒固定去撞）
 
 try {
   _spCooldownUntil = parseInt(localStorage.getItem(SP_COOLDOWN_KEY) || '0', 10) || 0;
   const _l429 = localStorage.getItem(SP_LAST429_KEY);
   if (_l429) _spLast429 = JSON.parse(_l429);
+  _spStreak = parseInt(localStorage.getItem(SP_STREAK_KEY) || '0', 10) || 0;
 } catch (e) { /* 讀不到就當作沒有冷卻 */ }
 
 /** 冷卻還剩幾秒；0 = 沒有冷卻 */
@@ -254,7 +258,13 @@ function _spOn429(res, shortPath, countIn30s) {
   try { raw = res.headers.get('Retry-After'); } catch (e) { /* 讀不到 */ }
   let sec = parseInt(raw, 10);
   const readable = Number.isFinite(sec) && sec > 0;
-  if (!readable) sec = SP_DEFAULT_WAIT_SEC;
+  // 連續 429：30 分鐘內又被擋就算連續；超過就當作新的一輪
+  const recent = _spLast429 && (Date.now() - _spLast429.at) < 30 * 60 * 1000;
+  _spStreak = recent ? _spStreak + 1 : 1;
+  if (!readable) {
+    // 瀏覽器讀不到 Retry-After（Spotify 沒開放跨網域讀取）→ 30、60、120、240、480、900 秒…逐次拉長
+    sec = Math.min(SP_DEFAULT_WAIT_SEC * Math.pow(2, _spStreak - 1), SP_BACKOFF_MAX_SEC);
+  }
   sec = Math.min(Math.max(sec, 1), SP_MAX_WAIT_SEC);
 
   const until = Date.now() + (sec + 1) * 1000;   // 多留 1 秒緩衝
@@ -270,10 +280,11 @@ function _spOn429(res, shortPath, countIn30s) {
   try {
     localStorage.setItem(SP_COOLDOWN_KEY, String(_spCooldownUntil));
     localStorage.setItem(SP_LAST429_KEY, JSON.stringify(_spLast429));
+    localStorage.setItem(SP_STREAK_KEY, String(_spStreak));
   } catch (e) { /* 忽略 */ }
 
   appLog('429', `Spotify 限流（${shortPath}）：30 秒內已送 ${countIn30s} 次；` +
-    `Retry-After ${readable ? sec + ' 秒' : '讀不到'}，冷卻 ${sec} 秒`);
+    `Retry-After ${readable ? sec + ' 秒' : '讀不到'}，冷卻 ${sec} 秒（連續第 ${_spStreak} 次）`);
 
   try {
     window.dispatchEvent(new CustomEvent('sp-cooldown', { detail: { seconds: spCooldownLeft() } }));
@@ -316,5 +327,11 @@ window.fetch = async function (input, init) {
 
   appLog('API', `${method} ${shortPath} → ${res.status}`);
   if (res.status === 429) _spOn429(res, shortPath, count30);
+  else if (res.ok && _spStreak > 0 && _spLast429 && _spLast429.path &&
+           _spLast429.path.split('?')[0] === shortPath.split('?')[0]) {
+    // 之前被擋的那支 API 成功了 → 連續次數歸零
+    _spStreak = 0;
+    try { localStorage.setItem(SP_STREAK_KEY, '0'); } catch (e) { /* 忽略 */ }
+  }
   return res;
 };
