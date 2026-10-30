@@ -27,6 +27,7 @@ async function syncCurrentTrack(name, artist, uri) {
 
 let currentTrackName = '';
 let currentArtistName = '';
+let currentTrackNote = '';   // 這首歌在 Firebase 的自訂備註（沒有就是空字串）
 
 let _timerHandle = null;
 let _tickHandle = null;
@@ -362,6 +363,7 @@ function toggleReveal() {
   if (_isRevealed) {
     document.getElementById('answer-song-name').textContent = currentTrackName || '（未知歌曲）';
     document.getElementById('answer-artist-name').textContent = currentArtistName || '';
+    _renderAnswerNote();
     hidden.classList.add('hide');
     revealed.classList.add('show');
   } else {
@@ -378,6 +380,9 @@ function _resetAnswer() {
   document.getElementById('answer-artist-name').textContent = '';
   currentTrackName = '';
   currentArtistName = '';
+  currentTrackNote = '';
+  const noteEl = document.getElementById('answer-note');
+  if (noteEl) noteEl.textContent = '';
 }
 
 /* ── 從 URI 直接預取歌曲資訊（方案 B：0 延遲，不依賴 currently-playing 更新） ── */
@@ -401,6 +406,31 @@ async function _fetchTrackInfo(uri) {
   } catch (e) {
     console.error('_fetchTrackInfo error:', e);
   }
+}
+
+/* ── 讀取這首歌的自訂備註（單人模式；存在 Firebase trackNotes/{歌曲ID}，由 track-notes.js 提供） ── */
+
+async function _fetchTrackNote(uri) {
+  if (_roomCode) return;                              // 多人模式先不顯示備註
+  if (typeof fetchTrackNote !== 'function') return;   // track-notes.js 沒載入就略過
+  const trackId = uri.split(':')[2];
+  if (!trackId) return;
+
+  try {
+    const note = await fetchTrackNote(trackId);
+    if (_currentUri !== uri) return;                  // 已經換歌，丟掉舊結果
+    currentTrackNote = note;
+    if (_isRevealed) _renderAnswerNote();             // 答案已揭曉但備註才回來 → 補上
+  } catch (e) {
+    console.warn('讀取備註失敗:', e);
+  }
+}
+
+function _renderAnswerNote() {
+  const el = document.getElementById('answer-note');
+  if (!el) return;
+  // 沒有備註 → 空字串，CSS 的 :empty 會把整行隱藏
+  el.textContent = currentTrackNote ? '備註: ' + currentTrackNote : '';
 }
 
 /* ── 跳到指定秒數（換歌後使用，會驗證真的跳到「新歌」的位置，沒跳到就重試） ──
@@ -462,6 +492,9 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
 
   // 預取歌曲資訊（從 URI 直接解 track id，不需等播放狀態更新）
   _fetchTrackInfo(uri);
+
+  // 讀取這首歌的自訂備註（背景進行，不影響播放）
+  _fetchTrackNote(uri);
 
   setStatus('idle', '尋找裝置...');
 
