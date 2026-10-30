@@ -607,8 +607,8 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
         setTimeout(() => _startPolling(), 3000);
       }
 
-      // 加入今日歌單（不影響播放流程，fire-and-forget）
-      addToPlayedPlaylist(uri);
+      // 加入今日歌單（開關打開才執行；不影響播放流程，fire-and-forget）
+      if (loadSettings().addToPlayed) addToPlayedPlaylist(uri);
 
       // 多人模式：同步 currentTrack 到 Firebase（延遲 1 秒讓 _fetchTrackInfo 跑完）
       setTimeout(() => syncCurrentTrack(currentTrackName, currentArtistName, uri), 1000);
@@ -638,7 +638,7 @@ async function doDebug() {
   box.textContent += 'Runtime token: ' + (runtimeOk ? '有' : '無') + '\n\n';
 
   const s = loadSettings();
-  box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n\n`;
+  box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n加入今日歌單: ${s.addToPlayed}\n允許重複: ${s.allowRepeat}\n\n`;
   box.textContent += `當前 URI: ${_currentUri || '無'}\n`;
   box.textContent += `歌曲名稱: ${currentTrackName || '未取得'}\n`;
   box.textContent += `斷點位置: ${_pausedAtMs !== null ? Math.round(_pausedAtMs / 1000) + ' 秒' : '無'}\n\n`;
