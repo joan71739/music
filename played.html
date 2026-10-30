@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金曲歌王 — 今日歌單</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/played.css">
+</head>
+
+<body>
+
+  <div id="pd-view">
+
+    <!-- 標題列 -->
+    <div class="pd-header">
+      <a href="index.html" class="pd-back" aria-label="返回首頁">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+      </a>
+      <div class="pd-title">今日歌單</div>
+      <div class="pd-count" id="pd-count"></div>
+    </div>
+
+    <!-- 第一次使用提醒 -->
+    <div class="pd-note">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      <div>
+        <b>第一次使用請先按一次「同步」</b>，把 Spotify 今日歌單裡已有的歌匯入。
+        否則「重複播放」的檢查會漏掉這些歌。
+      </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="pd-actions">
+      <button id="pd-sync" class="pd-btn" type="button" onclick="pdSync()">
+        <i class="ti ti-refresh" aria-hidden="true"></i>同步
+      </button>
+      <button id="pd-clear" class="pd-btn pd-btn-danger" type="button" onclick="pdClear()">
+        <i class="ti ti-trash" aria-hidden="true"></i>清除
+      </button>
+    </div>
+    <div class="pd-hint">
+      <b>同步</b>：以 Spotify 今日歌單為準，重建 Firebase 紀錄。<br>
+      <b>清除</b>：清空 Firebase 紀錄，並嘗試清空 Spotify 今日歌單。
+    </div>
+
+    <!-- 操作結果 -->
+    <div id="pd-status" class="pd-status" style="display:none"></div>
+
+    <!-- 已播清單 -->
+    <div id="pd-list" class="pd-list">
+      <div class="pd-empty">載入中...</div>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="played-toast"></div>
+
+  <script src="js/constants.js"></script>
+  <script src="js/base.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/track-notes.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/played.js"></script>
+
+</body>
+
+</html>

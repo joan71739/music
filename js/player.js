@@ -1,7 +1,7 @@
 /**
  * player.js
  * 核心播放控制，跨模式共用。
- * 依賴：auth.js（getToken）、history.js（addToPlayedPlaylist）
+ * 依賴：auth.js（getToken、appLog、spCooldownLeft…）、history.js（recordTrackPlayed…）
  */
 
 // ── 多人模式：房間碼 & currentTrack 同步 ──
@@ -105,6 +105,44 @@ function setStatus(state, text) {
   if (text && statusText) statusText.textContent = text;
 }
 
+/* ── 429 冷卻提示 ──
+ * Spotify 回 429（請求過多）時，auth.js 會進入冷卻並發出 'sp-cooldown' 事件。
+ * 這裡負責：跳一次提示、把「下一首」鎖住並顯示倒數；冷卻結束自動恢復。
+ * 不去動狀態圓環和狀態文字，所以正在播的歌、「音樂結束」等狀態都不會被蓋掉。
+ */
+
+let _cdTimer = null;
+
+function startCooldownUI() {
+  const left = spCooldownLeft();
+  if (left <= 0 || _cdTimer) return;
+
+  const btn = document.getElementById('btn-next');
+  const label = btn ? btn.querySelector('span') : null;
+  const origLabel = label ? label.textContent : '下一首';
+
+  if (typeof showToast === 'function') {
+    showToast('played-toast', `請求過多，Spotify 暫時限流，請等 ${left} 秒`, false);
+  }
+
+  const tick = () => {
+    const l = spCooldownLeft();
+    if (l <= 0) {
+      clearInterval(_cdTimer);
+      _cdTimer = null;
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      if (label) label.textContent = origLabel;
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; }
+    if (label) label.textContent = `等 ${l} 秒`;
+  };
+  tick();
+  _cdTimer = setInterval(tick, 500);
+}
+
+window.addEventListener('sp-cooldown', () => startCooldownUI());
+
 /* ── 播放/暫停 按鈕顯示控制 ── */
 
 function _showPlayPause(show) {
@@ -137,9 +175,10 @@ async function _pausePlay() {
   const t = await getToken();
   if (!t) return;
   try {
-    await fetch('https://api.spotify.com/v1/me/player/pause', {
+    const r = await fetch('https://api.spotify.com/v1/me/player/pause', {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t },
     });
+    if (r.status === 429) { startCooldownUI(); return; }   // 被限流：這次暫停沒成功，畫面狀態不變
     _isPaused = true;
     _pauseTimer();
     setStatus('paused', '已暫停');
@@ -152,9 +191,10 @@ async function _resumePlay() {
   const t = await getToken();
   if (!t) return;
   try {
-    await fetch('https://api.spotify.com/v1/me/player/play', {
+    const r = await fetch('https://api.spotify.com/v1/me/player/play', {
       method: 'PUT', headers: { Authorization: 'Bearer ' + t },
     });
+    if (r.status === 429) { startCooldownUI(); return; }   // 被限流：這次繼續沒成功，畫面狀態不變
     _isPaused = false;
     _resumeTimer();
     setStatus('playing', '播放中');
@@ -451,10 +491,10 @@ function _resetAnswer() {
 
 async function _fetchTrackInfo(uri) {
   const trackId = uri.split(':')[2];  // 'spotify:track:XXXX' → 'XXXX'
-  if (!trackId) return;
+  if (!trackId) return null;
 
   const t = await getToken();
-  if (!t) return;
+  if (!t) return null;
 
   try {
     const r = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
@@ -462,13 +502,17 @@ async function _fetchTrackInfo(uri) {
     });
     if (r.ok) {
       const d = await r.json();
-      currentTrackName = d.name || '';
-      currentArtistName = d.artists?.map(a => a.name).join(', ') || '';
+      const name = d.name || '';
+      const artist = d.artists?.map(a => a.name).join(', ') || '';
+      currentTrackName = name;
+      currentArtistName = artist;
       if (_currentUri === uri) _expectedTrack = _trackBrief(d, trackId);
+      return { name, artist };   // 給今日紀錄用（不受之後換歌影響）
     }
   } catch (e) {
     console.error('_fetchTrackInfo error:', e);
   }
+  return null;
 }
 
 /* ── 讀取這首歌的自訂備註（單人模式；存在 Firebase trackNotes/{歌曲ID}，由 track-notes.js 提供） ── */
@@ -531,6 +575,23 @@ async function _seekTo(t, uri, ms) {
   return false;
 }
 
+/* ── 今日紀錄：Firebase 一律記錄；「同步到 Spotify 今日歌單」開關打開才另外加進 Spotify 歌單 ── */
+
+async function _recordPlayed(uri, infoP, meta) {
+  try {
+    let name = (meta && meta.name) || '';
+    let artist = (meta && meta.artist) || '';
+    if (!name) {
+      // 沒有現成的歌名（例如 NFC 感應）→ 等 /tracks 查詢結果，最多等 4 秒
+      const info = await Promise.race([infoP, new Promise(r => setTimeout(() => r(null), 4000))]);
+      if (info) { name = info.name; artist = info.artist; }
+    }
+    await recordTrackPlayed(uri, name, artist, loadSettings().addToPlayed);
+  } catch (e) {
+    console.warn('今日紀錄失敗:', e);
+  }
+}
+
 /* ── 核心播放函式（跨模式共用） ── */
 
 /**
@@ -539,8 +600,12 @@ async function _seekTo(t, uri, ms) {
  * @param {number|null} startMs    開始位置（毫秒），null = 從頭
  * @param {number|null} durationMs 限時長度（毫秒），null = 完整播放
  * @param {boolean} isResume       true = 從斷點接續播放
+ * @param {{name:string, artist:string}|null} meta  已知的歌名/歌手（主題選歌模式會帶），只給今日紀錄備用
  */
-async function playTrack(uri, startMs, durationMs, isResume = false) {
+async function playTrack(uri, startMs, durationMs, isResume = false, meta = null) {
+  // 429 冷卻中：什麼都不重置（正在播的歌不受影響），只提示
+  if (spCooldownLeft() > 0) { startCooldownUI(); return; }
+
   _pollSeq++;               // 之前還在途中的檢查結果一律作廢
   _noPlaybackCount = 0;
   _expectedTrack = null;
@@ -557,7 +622,7 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
   if (!t) { setStatus('idle', '請重新登入'); showView('login'); return; }
 
   // 預取歌曲資訊（從 URI 直接解 track id，不需等播放狀態更新）
-  _fetchTrackInfo(uri);
+  const infoP = _fetchTrackInfo(uri);
 
   // 讀取這首歌的自訂備註（背景進行，不影響播放）
   _fetchTrackNote(uri);
@@ -673,8 +738,9 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
         setTimeout(() => _startPolling(), 3000);
       }
 
-      // 加入今日歌單（開關打開才執行；不影響播放流程，fire-and-forget）
-      if (loadSettings().addToPlayed) addToPlayedPlaylist(uri);
+      // 今日紀錄（不影響播放流程，fire-and-forget）：
+      // Firebase 一律記錄；「同步到 Spotify 今日歌單」開關打開才另外加進 Spotify 歌單
+      _recordPlayed(uri, infoP, meta);
 
       // 多人模式：同步 currentTrack 到 Firebase（延遲 1 秒讓 _fetchTrackInfo 跑完）
       setTimeout(() => syncCurrentTrack(currentTrackName, currentArtistName, uri), 1000);
@@ -690,10 +756,41 @@ async function playTrack(uri, startMs, durationMs, isResume = false) {
 
 /* ── Debug ── */
 
+// 「測試連線」下半部：請求頻率、429、今日紀錄、最近操作紀錄
+function _debugExtra() {
+  const lines = [];
+  const left = spCooldownLeft();
+  const st = spRequestStats();
+  const l429 = spLast429Info();
+
+  lines.push('\n── Spotify 請求狀況 ──');
+  lines.push(`冷卻狀態: ${left > 0 ? '冷卻中，還要等 ' + left + ' 秒' : '無'}`);
+  lines.push(`最近 30 秒請求數: ${st.last30s}（本頁最高 ${st.peak30s}）`);
+  lines.push(`本頁累計請求數: ${st.total}`);
+  if (l429) {
+    lines.push(`最近一次 429: ${appClock(l429.at)}，當時 30 秒內已送 ${l429.countIn30s} 次，` +
+      (l429.retryAfter ? `Retry-After ${l429.retryAfter} 秒` : `Retry-After 讀不到（改用預設 ${l429.waitSec} 秒）`));
+  } else {
+    lines.push('最近一次 429: 無');
+  }
+
+  lines.push('\n── 今日紀錄（Firebase）──');
+  const n = playedCount();
+  lines.push(`本機快取: ${n === null ? '尚未載入' : n + ' 首'}`);
+  const m = getLastSpotifyMirror();
+  lines.push(`Spotify 今日歌單最近動作: ${m ? appClock(m.at) + ' ' + (m.ok ? '成功' : '失敗') + '：' + m.msg : '無'}`);
+
+  lines.push('\n── 最近操作紀錄（新的在下面）──');
+  lines.push(getAppLogText(25) || '（尚無紀錄）');
+  return lines.join('\n') + '\n';
+}
+
 async function doDebug() {
   const box = document.getElementById('debug-box');
   if (box.style.display === 'block') { box.style.display = 'none'; return; }
   box.style.display = 'block';
+  box.style.maxHeight = '50vh';
+  box.style.overflowY = 'auto';
   box.textContent = '測試中...\n';
 
   const t = localStorage.getItem('spotify_token');
@@ -704,19 +801,20 @@ async function doDebug() {
   box.textContent += 'Runtime token: ' + (runtimeOk ? '有' : '無') + '\n\n';
 
   const s = loadSettings();
-  box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n加入今日歌單: ${s.addToPlayed}\n允許重複: ${s.allowRepeat}\n\n`;
+  box.textContent += `限時模式: ${s.limitMode}\n播放秒數: ${s.durationSec}\n開始位置: ${s.startSec}秒\n同步到 Spotify 今日歌單: ${s.addToPlayed}\n允許重複: ${s.allowRepeat}\n\n`;
   box.textContent += `當前 URI: ${_currentUri || '無'}\n`;
   box.textContent += `歌曲名稱: ${currentTrackName || '未取得'}\n`;
   box.textContent += `斷點位置: ${_pausedAtMs !== null ? Math.round(_pausedAtMs / 1000) + ' 秒' : '無'}\n`;
   box.textContent += `最近一次判定播完的原因: ${_lastEndReason || '無'}\n\n`;
 
-  if (!runtimeOk) { box.textContent += '沒有有效 Token，請重新登入'; return; }
+  if (!runtimeOk) { box.textContent += '沒有有效 Token，請重新登入\n' + _debugExtra(); return; }
 
   try {
     const r = await fetch('https://api.spotify.com/v1/me/player/devices', {
       headers: { Authorization: 'Bearer ' + runtimeOk },
     });
     box.textContent += 'API 狀態: ' + r.status + '\n';
+    if (r.status === 429) box.textContent += '（Spotify 限流中，或本機正在冷卻；看下方「請求狀況」）\n';
     const d = await r.json();
     box.textContent += '裝置數量: ' + (d.devices ? d.devices.length : 0) + '\n';
     (d.devices || []).forEach(dev => {
@@ -724,8 +822,10 @@ async function doDebug() {
     });
     if (!d.devices || d.devices.length === 0) box.textContent += JSON.stringify(d) + '\n';
   } catch (e) {
-    box.textContent += '錯誤: ' + e.message;
+    box.textContent += '錯誤: ' + e.message + '\n';
   }
+
+  box.textContent += _debugExtra();
 }
 
 /* ═══════════════════════════════════════════

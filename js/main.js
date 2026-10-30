@@ -29,6 +29,8 @@ async function init() {
 
   showView('player');
   _loadPlaylists();
+  loadPlayedRecords().catch(() => {});   // 預載今日紀錄（Firebase），之後判斷「播過了沒」不用再等
+  startCooldownUI();                      // 上一次的 429 冷卻還沒結束 → 一進來就鎖住「下一首」並顯示倒數
   checkNFC();
 }
 
