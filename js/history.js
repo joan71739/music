@@ -6,17 +6,40 @@
 
 const PLAYED_PLAYLIST_ID = '7DHJnThdLdcwIn9soYyIpT';
 
+/** 取得今日歌單所有歌曲的 URI（分頁讀完）。回傳 Set；讀取失敗回傳 null */
+async function fetchPlayedUris(token) {
+  const t = token || await getToken();
+  if (!t) return null;
+  const uris = new Set();
+  let url = `https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items?limit=100&offset=0`;
+  try {
+    while (url) {
+      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + t } });
+      if (!r.ok) return null;
+      const d = await r.json();
+      (d.items || []).forEach(item => {
+        const tr = item?.track || item?.item;
+        if (tr?.uri) uris.add(tr.uri);
+      });
+      url = d.next || null;
+    }
+  } catch (e) {
+    console.warn('讀取今日歌單失敗:', e);
+    return null;
+  }
+  return uris;
+}
+
 async function addToPlayedPlaylist(trackUri) {
   const t = await getToken();
   if (!t) return;
   try {
-    const r = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items?limit=100`, {
-      headers: { Authorization: 'Bearer ' + t }
-    });
-    const d = await r.json();
-    const items = d.items || [];
-    const exists = items.find(item => item.track?.uri === trackUri);
-    if (exists) return;
+    const played = await fetchPlayedUris(t);
+    if (played === null) {
+      showToast('played-toast', '讀取今日歌單失敗', false);
+      return;
+    }
+    if (played.has(trackUri)) return;   // 已經在今日歌單，不重複加入
 
     const addR = await fetch(`https://api.spotify.com/v1/playlists/${PLAYED_PLAYLIST_ID}/items`, {
       method: 'POST',

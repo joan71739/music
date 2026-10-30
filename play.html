@@ -178,6 +178,26 @@
             <button class="step-btn" onclick="stepSetting('dur',5)">+</button>
           </div>
         </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            加入今日歌單
+            <small>播放時自動記錄到今日歌單</small>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-add-played" onchange="onAddPlayedToggle()">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            重複播放
+            <small>關閉則跳過今日已播過的歌</small>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-repeat" onchange="onRepeatToggle()">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
       </div>
 
       <div id="debug-box"></div>

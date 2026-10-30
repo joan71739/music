@@ -1,7 +1,7 @@
 /**
  * nfc.js
  * NFC 模式專屬邏輯。
- * 負責：播放設定（start/duration/limitMode）、URL 參數解析、NFC 觸發播放。
+ * 負責：播放設定（start/duration/limitMode/addToPlayed/allowRepeat）、URL 參數解析、NFC 觸發播放。
  * 依賴：auth.js（getToken）、player.js（playTrack）、constants.js（DEFAULTS）
  */
 
@@ -12,6 +12,8 @@ function loadSettings() {
     limitMode: DEFAULTS.LIMIT_MODE,
     durationSec: DEFAULTS.DURATION_SEC,
     startSec: DEFAULTS.START_SEC,
+    addToPlayed: DEFAULTS.ADD_TO_PLAYED,
+    allowRepeat: DEFAULTS.ALLOW_REPEAT,
   };
   const raw = localStorage.getItem('player_settings');
   if (!raw) return defaults;
@@ -29,11 +31,15 @@ function applySettingsToUI(s) {
   const elDur   = document.getElementById('display-dur');
   const elRow   = document.getElementById('row-duration');
   const elSumm  = document.getElementById('settings-summary');
+  const elAdd   = document.getElementById('setting-add-played');
+  const elRep   = document.getElementById('setting-repeat');
 
   if (elLimit) elLimit.checked     = s.limitMode;
   if (elStart) elStart.textContent = s.startSec + ' 秒';
   if (elDur)   elDur.textContent   = s.durationSec + ' 秒';
   if (elRow)   elRow.classList.toggle('disabled', !s.limitMode);
+  if (elAdd)   elAdd.checked       = s.addToPlayed;
+  if (elRep)   elRep.checked       = s.allowRepeat;
 
   const parts = [];
   if (s.startSec > 0) parts.push('從' + s.startSec + '秒');
@@ -54,6 +60,24 @@ function onLimitToggle() {
   if (!el) return;
   const s = loadSettings();
   s.limitMode = el.checked;
+  _saveSettings(s);
+  applySettingsToUI(s);
+}
+
+function onAddPlayedToggle() {
+  const el = document.getElementById('setting-add-played');
+  if (!el) return;
+  const s = loadSettings();
+  s.addToPlayed = el.checked;
+  _saveSettings(s);
+  applySettingsToUI(s);
+}
+
+function onRepeatToggle() {
+  const el = document.getElementById('setting-repeat');
+  if (!el) return;
+  const s = loadSettings();
+  s.allowRepeat = el.checked;
   _saveSettings(s);
   applySettingsToUI(s);
 }
